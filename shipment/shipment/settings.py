@@ -72,13 +72,8 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
    'http://localhost:4200',  # Adjust to match your frontend URL
     # Add other allowed origins as needed
-<<<<<<< HEAD
-    'http://35.154.191.16:8000',
-    'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com/'
-=======
     'http://http://35.154.191.16/',
     'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com'
->>>>>>> f9d4023caea18a55e814f5da7ad5abb9fc1cace9
 ]
 
 SIMPLE_JWT = {
