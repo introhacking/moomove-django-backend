@@ -870,6 +870,26 @@ class FrightTypeListAPIView(APIView):
         freight_type = FreightType.objects.all()
         serializer = FreightTypeSerializer(freight_type, many=True)
         return Response(serializer.data)
+
+    def post(self, request):
+        try:
+           requestData = request.data
+           freight_type = requestData.get('type')
+           # Check if a FreightType with this type already exists
+           existing_freight_type = FreightType.objects.filter(type=freight_type).first()
+           if existing_freight_type:
+                # If the type already exists, return the message
+                return Response({"message": "already exists"}, status=status.HTTP_200_OK)
+           
+            # Otherwise, create a new FreightType instance
+           FreightType.objects.create(type=freight_type)
+
+           return Response({'message': 'Freight type created successfully'}, status=status.HTTP_201_CREATED)
+
+
+        except Exception as e:
+           return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
+
     
 class RateListView(generics.ListAPIView):
     permission_classes=[IsAuthenticated]
@@ -993,134 +1013,7 @@ class ManualRateListView(APIView):
 
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-
-    # def post(self, request):
-    #     try:
-    #        requestData = request.data
-    #        print(requestData)
-    #        company_name = requestData.get('company')
-    #        source_name = requestData.get('source')
-    #        destination_name = requestData.get('destination')
-    #        freight_type = requestData.get('freight_type')
-    #        transit_time = requestData.get('transit_time')
-           
-    #        # Create or retrieve the Company instance
-    #        company_instance, created = Company.objects.get_or_create(name=company_name)
-
-    #        # Create or retrieve the Source and Destination instances
-    #        source_instance, created = Source.objects.get_or_create(name=source_name)
-    #        destination_instance, created = Destination.objects.get_or_create(name=destination_name)
-    #        freight_type_instance, created = FreightType.objects.get_or_create(type=freight_type)
-    #        transit_time_instance, created = TransitTime.objects.get_or_create(time=transit_time)
-
-    #         # Check if a ManualRate already exists
-    #        manual_rate = ManualRate.objects.filter(
-    #             company=company_instance,
-    #             source=source_instance,
-    #             destination=destination_instance,
-    #             freight_type=freight_type_instance,
-    #             transit_time=transit_time_instance,
-    #             ).first()
-
-    #        versioned_rate = VersionedRate.objects.filter(
-    #             company=company_instance,
-    #             source=source_instance,
-    #             destination=destination_instance,
-    #             freight_type=freight_type_instance,
-    #             transit_time=transit_time_instance,
-    #             ).first()
-
-    #        rate = Rate.objects.filter(
-    #             company=company_instance,
-    #             source=source_instance,
-    #             destination=destination_instance,
-    #             freight_type=freight_type_instance,
-    #             transit_time=transit_time_instance,
-    #             ).first()
-
-
         
-
-    #        if manual_rate:
-    #             print("Manual Rate Found")
-
-    #        else:
-
-    #             versioned_rate = VersionedRate.objects.create(
-    #                 company=company_instance,
-    #                 source=source_instance,
-    #                 destination=destination_instance,
-    #                 freight_type=freight_type_instance,
-    #                 transit_time=transit_time_instance,
-    #                 rate=requestData.get('rate'),
-    #                 effective_date=requestData.get('effective_date'),
-    #                 expiration_date=requestData.get('expiration_date'),
-    #                 remarks=requestData.get('remarks'),
-    #                 is_current=True 
-    #             )
-
-    #             # Create a new ManualRate if it doesn't exist
-    #                 # freight_type=requestData.get('freight_type'),
-    #                 # logo=company_logo,
-    #                 # transit_time=requestData.get('transit_time'),
-    #             manual_rate = ManualRate.objects.create(
-    #                 company=company_instance,
-    #                 source=source_instance,
-    #                 destination=destination_instance,
-    #                 freight_type=freight_type_instance,
-    #                 transit_time=transit_time_instance,
-    #                 rate=requestData.get('rate'),
-    #                 direct_shipment =requestData.get('direct_shipment'),
-    #                 transhipment_add_port=requestData.get('transhipment_add_port'),
-    #                 cargotype =requestData.get('cargotype'),
-    #                 effective_date=requestData.get('effective_date'),
-    #                 expiration_date=requestData.get('expiration_date'),
-    #                 remarks=requestData.get('remarks'),
-    #                 terms_condition=requestData.get('terms_condition'),
-    #                 version=versioned_rate
-    #                 )
-    #             print("Manual Rate object created")
-
-                
-    #              # Create a new Rate if it doesn't exist
-    #             rate = Rate.objects.create(
-    #                 company=company_instance,
-    #                 source=source_instance,
-    #                 destination=destination_instance,
-    #                 freight_type=freight_type_instance,
-    #                 transit_time=transit_time_instance,
-    #                 rate=requestData.get('rate'),
-    #                 effective_date=requestData.get('effective_date'),
-    #                 expiration_date=requestData.get('expiration_date'),
-    #                 version=versioned_rate,
-    #                 remarks=requestData.get('remarks'),
-
-    #             )
-    #             print("Rate object created")
-
-    #              # Create a new VersionedRate if it doesn't exist
-    #             # versioned_rate = VersionedRate.objects.create(
-    #             #     company=company_instance,
-    #             #     source=source_instance,
-    #             #     destination=destination_instance,
-    #             #     freight_type=freight_type_instance,
-    #             #     transit_time=transit_time_instance,
-    #             #     rate=requestData.get('rate'),
-    #             #     effective_date=requestData.get('effective_date'),
-    #             #     expiration_date=requestData.get('expiration_date'),
-    #             #     remarks=requestData.get('remarks'),
-
-    #             # )
-    #             # print("VersionedRate object created")
-
-
-    #             return Response({'message': 'Manual rate processed successfully'}, status=status.HTTP_201_CREATED)
-
-    #     except Exception as e:
-    #         return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-
 
     # UPDATING FUNCTION HERE
 
