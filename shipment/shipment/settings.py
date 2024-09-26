@@ -74,7 +74,7 @@ CORS_ALLOWED_ORIGINS = [
     # Add other allowed origins as needed
     'http://35.154.191.16',
     
-    'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com/'    # FOR AWS 
+    'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com'    # FOR AWS 
 ] 
 
 SIMPLE_JWT = {
