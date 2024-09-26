@@ -66,7 +66,7 @@ class RateSerializer1(serializers.ModelSerializer):
 
 
 class ManualRateSerializer(serializers.ModelSerializer):
-    print('Manual Rate Serializer Initialized')
+    # print('Manual Rate Serializer Initialized')
     company = CompanySerializer()
     source = SourceSerializer()
     destination = DestinationSerializer()
@@ -80,9 +80,16 @@ class ManualRateSerializer(serializers.ModelSerializer):
 
 
 class CustomerInfoSerializer(serializers.ModelSerializer):
-    print('CustomerInfo Serializer Initialized')
+    # print('CustomerInfo Serializer Initialized')
     class Meta:
         model = CustomerInfo
+        fields = '__all__'
+
+
+class RegistrationSerializer(serializers.ModelSerializer):
+    # print('CustomerInfo Serializer Initialized')
+    class Meta:
+        model = Registration,
         fields = '__all__'
 
 
@@ -99,7 +106,6 @@ class IncoTermSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
-
 
 
 class LogoutSerializer(serializers.Serializer):

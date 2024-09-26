@@ -1,3 +1,7 @@
-/venv
-/lib
+venv
+lib
 *.json
+
+endpoint: moomovedb.cncigou2sueo.ap-south-1.rds.amazonaws.com
+pwd: Moomove123
+user: moomove

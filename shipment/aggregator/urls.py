@@ -23,5 +23,6 @@ urlpatterns = [
     path('manual-rate/<int:manual_rate_id>/', ManualRateListView.as_view(), name='update_manual_rate'),
     path('manual-rate/delete/<int:manual_rate_id>/', ManualRateListView.as_view(), name='delete_manual_rate'),
     path('customer/', CustomerInfoListView.as_view(), name='create_customer'),
+    path('registration/', RegistrationInfoListView.as_view(), name='registration'),
 
 ]

@@ -56,6 +56,7 @@ class VersionedRate(models.Model):
     transit_time = models.ForeignKey(TransitTime, on_delete=models.CASCADE)
     freight_type = models.ForeignKey(FreightType, on_delete=models.CASCADE)
     rate = models.DecimalField(max_digits=10, decimal_places=2)
+    spot_filed = models.CharField(max_length=15 , default='spot')
     effective_date = models.DateField()
     expiration_date = models.DateField()
     remarks = models.TextField(blank=True, null=True)
@@ -74,6 +75,7 @@ class Rate(models.Model):
     transit_time = models.ForeignKey(TransitTime, on_delete=models.CASCADE)
     freight_type = models.ForeignKey(FreightType, on_delete=models.CASCADE)
     rate = models.DecimalField(max_digits=10, decimal_places=2)
+    spot_filed = models.CharField(max_length=15 , default='spot')
     effective_date = models.DateField()
     expiration_date = models.DateField()
     remarks = models.TextField(blank=True, null=True)
@@ -81,30 +83,14 @@ class Rate(models.Model):
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
 
     class Meta:
-        unique_together = ('company', 'source', 'destination', 'transit_time', 'freight_type', 'effective_date', 'expiration_date' , 'soft_delete')
+        unique_together = ('company', 'source', 'destination', 'transit_time', 'freight_type', 'spot_filed', 'effective_date', 'expiration_date' , 'soft_delete')
 
     def __str__(self):
         # return f"{self.company}: {self.source} to {self.destination} - {self.transit_time} | {self.freight_type}: ${self.rate}"
         return f"{self.source} - {self.company}"
 
 # MANUAL RATE 
-# class ManualRate(models.Model):
-#     name = models.CharField(max_length=255,unique=True)
-#     logo = models.ImageField(upload_to='company_logos/', max_length=255, blank=True, null=True)
-#     source = models.CharField(max_length=255)
-#     destination = models.CharField(max_length=255)
-#     transit_time = models.CharField(max_length=255)
-#     freight_type = models.CharField(max_length=255)
-#     rate = models.DecimalField(max_digits=10, decimal_places=2)
-#     effective_date = models.DateField()
-#     expiration_date = models.DateField()
-#     remarks = models.TextField(blank=True, null=True)
-
-#     def __str__(self):
-#          return f"{self.name} | {self.source} - {self.destination} | {self.rate} | {self.effective_date} - {self.expiration_date}"
-
 class ManualRate(models.Model):
-    # freight_type = models.ForeignKey(FreightType, on_delete=models.CASCADE)
     # logo = models.ImageField(upload_to='company_logos/', max_length=255, blank=True, null=True)
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
@@ -116,6 +102,7 @@ class ManualRate(models.Model):
     effective_date = models.DateField()
     cargotype = models.CharField(max_length=50)
     direct_shipment = models.BooleanField(blank=True, null=True , default=False) 
+    spot_filed = models.CharField(max_length=15 , default='spot')
     transhipment_add_port = models.CharField(blank=True, null=True , max_length=50)
     expiration_date = models.DateField()
     remarks = models.TextField(blank=True, null=True)
@@ -125,7 +112,7 @@ class ManualRate(models.Model):
 
 
     class Meta:
-        unique_together = ('company', 'destination','source', 'direct_shipment', 'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate','effective_date', 'expiration_date', 'remarks', 'terms_condition', 'soft_delete', 'version' )
+        unique_together = ('company', 'destination','source', 'direct_shipment','spot_filed', 'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate','effective_date', 'expiration_date', 'remarks', 'terms_condition', 'soft_delete', 'version' )
 
     def __str__(self):
          return f"{self.company} | {self.source} - {self.destination} | {self.rate} - {self.cargotype} | {self.effective_date} - {self.expiration_date}"
@@ -157,4 +144,17 @@ class CustomerInfo(models.Model):
         unique_together = ('cust_name', 'cust_email', 'sales_represent','phone')
 
     def __str__(self):
-        return f"{self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"    
+        return f"{self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
+     
+class Registration(models.Model):
+    name = models.CharField(max_length=50)
+    email = models.EmailField(max_length=50)
+    phone = models.CharField(max_length=20)
+    username = models.CharField(max_length=20)
+    password = models.CharField(max_length=70)
+
+    class Meta:
+        unique_together = ('name', 'email',  'username', 'password' ,'phone')
+
+    def __str__(self):
+        return f"{self.name} | {self.email} | {self.username} | {self.phone}"    
