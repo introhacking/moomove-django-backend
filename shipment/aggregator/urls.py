@@ -22,6 +22,7 @@ urlpatterns = [
     path('incoterms/', IncoTermList.as_view(), name='incoterm-list'),
     path('manual-rate/', ManualRateListView.as_view(), name='create_manual_rate'),
     path('manual-rate/<int:manual_rate_id>/', ManualRateListView.as_view(), name='update_manual_rate'),
+    # path('frozen-rate/<int:company_id>/', UpadatingRateFrozenInfoListView.as_view(), name='update_rate_frozen'),
     path('manual-rate/delete/<int:manual_rate_id>/', ManualRateListView.as_view(), name='delete_manual_rate'),
     path('customer/', CustomerInfoListView.as_view(), name='create_customer'),
     path('registration/', RegistrationInfoListView.as_view(), name='registration'),
