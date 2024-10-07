@@ -72,7 +72,7 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:4200',  # Adjust to match your frontend URL
     # Add other allowed origins as needed
-    'http://35.154.191.16',
+    'http://35.154.191.16:8000',
     
     'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com'    # FOR AWS 
 ] 

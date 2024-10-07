@@ -73,7 +73,7 @@ def login(request):
                     'access': str(refresh.access_token),
                     'username': user.username,
                     'email': user.email,
-                    'name': f"{user.first_name} {user.last_name}".strip(),  # Combine first and last name
+                    # 'name': f"{user.first_name} {user.last_name}".strip(),  # Combine first and last name
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -932,13 +932,13 @@ class RateListView(generics.ListAPIView):
         # Extract parameters from URL path variables
         source_id = self.kwargs.get('source')
         destination_id = self.kwargs.get('destination')
-        freight_type_id = self.kwargs.get('freight_type')
+        # freight_type_id = self.kwargs.get('freight_type')
 
         # Query Rate objects based on parameters
         queryset = Rate.objects.filter(
             source_id=source_id,
             destination_id=destination_id,
-            freight_type_id=freight_type_id
+            # freight_type_id=freight_type_id
         )
 
         return queryset
@@ -969,6 +969,7 @@ class ManualRateListView(APIView):
         destination_name = requestData.get('destination')
         freight_type = requestData.get('freight_type')
         transit_time = requestData.get('transit_time')
+        commodity_name = requestData.get('cargotype')
         
         # Create or retrieve the Company instance
         company_instance, _ = Company.objects.get_or_create(name=company_name)
@@ -976,6 +977,7 @@ class ManualRateListView(APIView):
         destination_instance, _ = Destination.objects.get_or_create(name=destination_name)
         freight_type_instance, _ = FreightType.objects.get_or_create(type=freight_type)
         transit_time_instance, _ = TransitTime.objects.get_or_create(time=transit_time)
+        commodity_name_instance, _ = Comodity.objects.get_or_create(name=commodity_name)
         
         # Filter to check if any existing ManualRate, VersionedRate, or Rate exists with matching data
         existing_manual_rate = ManualRate.objects.filter(
@@ -984,6 +986,7 @@ class ManualRateListView(APIView):
             destination=destination_instance,
             freight_type=freight_type_instance,
             transit_time=transit_time_instance,
+            cargotype=commodity_name_instance
             # rate=rate_instance
         ).first()
 
@@ -993,6 +996,7 @@ class ManualRateListView(APIView):
             destination=destination_instance,
             freight_type=freight_type_instance,
             transit_time=transit_time_instance,
+            cargotype=commodity_name_instance
             # rate=rate_instance
         ).first()
 
@@ -1002,6 +1006,7 @@ class ManualRateListView(APIView):
             destination=destination_instance,
             freight_type=freight_type_instance,
             transit_time=transit_time_instance,
+            cargotype=commodity_name_instance
             # rate=rate_instance
         ).first()
 
@@ -1037,7 +1042,9 @@ class ManualRateListView(APIView):
             destination=destination_instance,
             freight_type=freight_type_instance,
             transit_time=transit_time_instance,
+            cargotype=commodity_name_instance,
             rate=requestData.get('rate'),
+            free_days=requestData.get('free_days'),
             spot_filed=requestData.get('spot_filed'),
             effective_date=requestData.get('effective_date'),
             expiration_date=requestData.get('expiration_date'),
@@ -1051,11 +1058,13 @@ class ManualRateListView(APIView):
             destination=destination_instance,
             freight_type=freight_type_instance,
             transit_time=transit_time_instance,
+            cargotype=commodity_name_instance,
             rate=requestData.get('rate'),
+            free_days=requestData.get('free_days'),
+            currency=requestData.get('currency'),
             direct_shipment=requestData.get('direct_shipment'),
             spot_filed=requestData.get('spot_filed'),
             transhipment_add_port=requestData.get('transhipment_add_port'),
-            cargotype=requestData.get('cargotype'),
             effective_date=requestData.get('effective_date'),
             expiration_date=requestData.get('expiration_date'),
             remarks=requestData.get('remarks'),
@@ -1069,14 +1078,15 @@ class ManualRateListView(APIView):
             destination=destination_instance,
             freight_type=freight_type_instance,
             transit_time=transit_time_instance,
+            cargotype=commodity_name_instance,
             rate=requestData.get('rate'),
+            free_days=requestData.get('free_days'),
             spot_filed=requestData.get('spot_filed'),
             effective_date=requestData.get('effective_date'),
             expiration_date=requestData.get('expiration_date'),
             version=versioned_rate,
             remarks=requestData.get('remarks')
         )
-
         return Response({'message': 'Manual rate processed successfully'}, status=status.HTTP_201_CREATED)
 
       except Exception as e:
@@ -1173,87 +1183,214 @@ class ManualRateListView(APIView):
 
     # UPDATING FUNCTION HERE
 
+
     def put(self, request, manual_rate_id):
         try:
             requestData = request.data
             print(requestData)
-        
-        # Retrieve the existing ManualRate object
+
+            # Retrieve the existing ManualRate object
             try:
-               manual_rate_instance = ManualRate.objects.get(id=manual_rate_id)
+                manual_rate_instance = ManualRate.objects.get(id=manual_rate_id)
             except ManualRate.DoesNotExist:
                 return Response({"detail": "ManualRate not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Update related instances if necessary
-            company_name = requestData.get('company')
-            source_name = requestData.get('source')
-            destination_name = requestData.get('destination')
-            freight_type = requestData.get('freight_type')
-            transit_time = requestData.get('transit_time')
+            # Update related instances if necessary
+            try:
+                company_instance = Company.objects.get(name=requestData.get('company'))
+            except Company.DoesNotExist:
+                return Response({"detail": "Company not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Update related instances (Company, Source, Destination, FreightType, TransitTime)
-            company_instance = Company.objects.get(name=company_name)
-            source_instance = Source.objects.get(name=source_name)
-            destination_instance = Destination.objects.get(name=destination_name)
-            freight_type_instance = FreightType.objects.get(type=freight_type)
-            transit_time_instance = TransitTime.objects.get(time=transit_time)
+            try:
+                source_instance = Source.objects.get(name=requestData.get('source'))
+            except Source.DoesNotExist:
+                return Response({"detail": "Source not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Update the ManualRate instance with the new data
+            try:
+                destination_instance = Destination.objects.get(name=requestData.get('destination'))
+            except Destination.DoesNotExist:
+                return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            try:
+                freight_type_instance = FreightType.objects.get(type=requestData.get('freight_type'))
+            except FreightType.DoesNotExist:
+                return Response({"detail": "Freight type not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            try:
+                transit_time_instance = TransitTime.objects.get(time=requestData.get('transit_time'))
+            except TransitTime.DoesNotExist:
+                return Response({"detail": "Transit time not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            try:
+                commodity_instance = Comodity.objects.get(name=requestData.get('cargotype'))
+            except Comodity.DoesNotExist:
+                return Response({"detail": "Commodity not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Update the ManualRate instance with the new data
             manual_rate_instance.company = company_instance
             manual_rate_instance.source = source_instance
             manual_rate_instance.destination = destination_instance
             manual_rate_instance.freight_type = freight_type_instance
             manual_rate_instance.transit_time = transit_time_instance
-            manual_rate_instance.rate = requestData.get('rate')
-            manual_rate_instance.direct_shipment = requestData.get('direct_shipment')
-            manual_rate_instance.spot_filed = requestData.get('spot_filed')
-            manual_rate_instance.transhipment_add_port = requestData.get('transhipment_add_port')
-            manual_rate_instance.cargotype = requestData.get('cargotype')
-            manual_rate_instance.effective_date = requestData.get('effective_date')
-            manual_rate_instance.expiration_date = requestData.get('expiration_date')
-            manual_rate_instance.remarks = requestData.get('remarks')
-            manual_rate_instance.terms_condition = requestData.get('terms_condition')
+            manual_rate_instance.cargotype = commodity_instance
+            manual_rate_instance.rate = requestData.get('rate', manual_rate_instance.rate)  # Ensure correct type
+            manual_rate_instance.direct_shipment = requestData.get('direct_shipment', manual_rate_instance.direct_shipment)
+            manual_rate_instance.spot_filed = requestData.get('spot_filed', manual_rate_instance.spot_filed)
+            manual_rate_instance.free_days = int(requestData.get('free_days', manual_rate_instance.free_days))
+            manual_rate_instance.transhipment_add_port = requestData.get('transhipment_add_port', manual_rate_instance.transhipment_add_port)
+            manual_rate_instance.effective_date = requestData.get('effective_date', manual_rate_instance.effective_date)
+            manual_rate_instance.expiration_date = requestData.get('expiration_date', manual_rate_instance.expiration_date)
+            manual_rate_instance.remarks = requestData.get('remarks', manual_rate_instance.remarks)
+            manual_rate_instance.terms_condition = requestData.get('terms_condition', manual_rate_instance.terms_condition)
+            # manual_rate_instance.isRateUsed = requestData.get('isRateUsed', manual_rate_instance.isRateUsed)
 
-        # Handle the versioned rate update if necessary
-            versioned_rate_instance = VersionedRate.objects.get(
-                company=company_instance,
-                source=source_instance,
-                destination=destination_instance,
-                freight_type=freight_type_instance,
-                transit_time=transit_time_instance
-            )
-        # Update only the fields that need to be updated
-            versioned_rate_instance.rate = requestData.get('rate')
-            versioned_rate_instance.effective_date = requestData.get('effective_date')
-            versioned_rate_instance.expiration_date = requestData.get('expiration_date')
-            versioned_rate_instance.remarks = requestData.get('remarks')
+            # Handle the versioned rate update if necessary
+            try:
+                versioned_rate_instance = VersionedRate.objects.get(
+                    company=company_instance,
+                    source=source_instance,
+                    destination=destination_instance,
+                    freight_type=freight_type_instance,
+                    transit_time=transit_time_instance,
+                    cargotype=commodity_instance
+                )
+            except VersionedRate.DoesNotExist:
+                return Response({"detail": "VersionedRate not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Update versioned_rate fields
+            versioned_rate_instance.rate = requestData.get('rate', versioned_rate_instance.rate)
+            versioned_rate_instance.free_days = int(requestData.get('free_days', versioned_rate_instance.free_days))
+            versioned_rate_instance.effective_date = requestData.get('effective_date', versioned_rate_instance.effective_date)
+            versioned_rate_instance.expiration_date = requestData.get('expiration_date', versioned_rate_instance.expiration_date)
+            # versioned_rate_instance.isRateUsed = requestData.get('isRateUsed', versioned_rate_instance.isRateUsed)
+            versioned_rate_instance.remarks = requestData.get('remarks', versioned_rate_instance.remarks)
             versioned_rate_instance.save()
 
-        # Update or retrieve the Rate instance
-            rate_instance = Rate.objects.get(
-                company=company_instance,
-                source=source_instance,
-                destination=destination_instance,
-                freight_type=freight_type_instance,
-                transit_time=transit_time_instance
-            )
-            rate_instance.rate = requestData.get('rate')
-            rate_instance.effective_date = requestData.get('effective_date')
-            rate_instance.expiration_date = requestData.get('expiration_date')
+            # Update or retrieve the Rate instance
+            try:
+                rate_instance = Rate.objects.get(
+                    company=company_instance,
+                    source=source_instance,
+                    destination=destination_instance,
+                    freight_type=freight_type_instance,
+                    transit_time=transit_time_instance,
+                    cargotype=commodity_instance
+                )
+            except Rate.DoesNotExist:
+                return Response({"detail": "Rate not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            rate_instance.rate = requestData.get('rate', rate_instance.rate)
+            rate_instance.free_days = int(requestData.get('free_days', rate_instance.free_days))
+            rate_instance.effective_date = requestData.get('effective_date', rate_instance.effective_date)
+            rate_instance.expiration_date = requestData.get('expiration_date', rate_instance.expiration_date)
+            # rate_instance.isRateUsed = requestData.get('isRateUsed', rate_instance.isRateUsed)
             rate_instance.version = versioned_rate_instance
-            rate_instance.remarks = requestData.get('remarks')
+            rate_instance.remarks = requestData.get('remarks', rate_instance.remarks)
             rate_instance.save()
 
-        # Link the updated version to the ManualRate
+            # Link the updated version to the ManualRate
             manual_rate_instance.version = versioned_rate_instance
 
-        # Save the updated ManualRate instance
+            # Save the updated ManualRate instance
             manual_rate_instance.save()
 
             return Response({'message': 'ManualRate updated successfully'}, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+           return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+    # def put(self, request, manual_rate_id):
+    #     try:
+    #         requestData = request.data
+    #         print(requestData)
+        
+    #     # Retrieve the existing ManualRate object
+    #         try:
+    #            manual_rate_instance = ManualRate.objects.get(id=manual_rate_id)
+    #         except ManualRate.DoesNotExist:
+    #             return Response({"detail": "ManualRate not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    #     # Update related instances if necessary
+    #         company_name = requestData.get('company')
+    #         source_name = requestData.get('source')
+    #         destination_name = requestData.get('destination')
+    #         freight_type = requestData.get('freight_type')
+    #         transit_time = requestData.get('transit_time')
+    #         commodity_name = requestData.get('cargotype')
+
+    #     # Update related instances (Company, Source, Destination, FreightType, TransitTime)
+    #         company_instance = Company.objects.get(name=company_name)
+    #         source_instance = Source.objects.get(name=source_name)
+    #         destination_instance = Destination.objects.get(name=destination_name)
+    #         freight_type_instance = FreightType.objects.get(type=freight_type)
+    #         transit_time_instance = TransitTime.objects.get(time=transit_time)
+    #         commodity_name_instance = Comodity.objects.get(name=commodity_name)
+
+    #     # Update the ManualRate instance with the new data
+    #         manual_rate_instance.company = company_instance
+    #         manual_rate_instance.source = source_instance
+    #         manual_rate_instance.destination = destination_instance
+    #         manual_rate_instance.freight_type = freight_type_instance
+    #         manual_rate_instance.transit_time = transit_time_instance
+    #         manual_rate_instance.cargotype = commodity_name_instance
+    #         manual_rate_instance.rate = requestData.get('rate')
+    #         manual_rate_instance.direct_shipment = requestData.get('direct_shipment')
+    #         manual_rate_instance.spot_filed = requestData.get('spot_filed')
+    #         manual_rate_instance.free_days = requestData.get('free_days')
+    #         manual_rate_instance.transhipment_add_port = requestData.get('transhipment_add_port')
+    #         manual_rate_instance.effective_date = requestData.get('effective_date')
+    #         manual_rate_instance.expiration_date = requestData.get('expiration_date')
+    #         manual_rate_instance.remarks = requestData.get('remarks')
+    #         manual_rate_instance.terms_condition = requestData.get('terms_condition')
+    #         manual_rate_instance.isRateUsed = requestData.get('isRateUsed')
+
+    #     # Handle the versioned rate update if necessary
+    #         versioned_rate_instance = VersionedRate.objects.get(
+    #             company=company_instance,
+    #             source=source_instance,
+    #             destination=destination_instance,
+    #             freight_type=freight_type_instance,
+    #             transit_time=transit_time_instance,
+    #             cargotype=commodity_name_instance
+    #         )
+    #     # Update only the fields that need to be updated
+    #         versioned_rate_instance.rate = requestData.get('rate')
+    #         versioned_rate_instance.free_days = requestData.get('free_days')
+    #         versioned_rate_instance.effective_date = requestData.get('effective_date')
+    #         versioned_rate_instance.expiration_date = requestData.get('expiration_date')
+    #         versioned_rate_instance.isRateUsed = requestData.get('isRateUsed')
+    #         versioned_rate_instance.remarks = requestData.get('remarks')
+    #         versioned_rate_instance.save()
+
+    #     # Update or retrieve the Rate instance
+    #         rate_instance = Rate.objects.get(
+    #             company=company_instance,
+    #             source=source_instance,
+    #             destination=destination_instance,
+    #             freight_type=freight_type_instance,
+    #             transit_time=transit_time_instance,
+    #             cargotype=commodity_name_instance
+    #         )
+    #         rate_instance.rate = requestData.get('rate')
+    #         rate_instance.free_days = requestData.get('free_days')
+    #         rate_instance.effective_date = requestData.get('effective_date')
+    #         rate_instance.expiration_date = requestData.get('expiration_date')
+    #         rate_instance.isRateUsed = requestData.get('isRateUsed')
+    #         rate_instance.version = versioned_rate_instance
+    #         rate_instance.remarks = requestData.get('remarks')
+    #         rate_instance.save()
+
+    #     # Link the updated version to the ManualRate
+    #         manual_rate_instance.version = versioned_rate_instance
+
+    #     # Save the updated ManualRate instance
+    #         manual_rate_instance.save()
+
+    #         return Response({'message': 'ManualRate updated successfully'}, status=status.HTTP_200_OK)
+
+    #     except Exception as e:
+    #         return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
    
     #  FOR DETELE
@@ -1312,6 +1449,84 @@ class ManualRateListView(APIView):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+# class UpadatingRateFrozenInfoListView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def put(self, request, company_id):
+#         requestData = request.data
+#         isRateUsed = requestData.get('isRateUsed', None)
+
+#         if isRateUsed is None:
+#             return Response({"error": "isRateUsed field is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Fetch the ManualRate object (assuming company_id refers to ManualRate's primary key)
+#         try:
+#             manual_rate = ManualRate.objects.get(id=company_id)
+#         except ManualRate.DoesNotExist:
+#             return Response({"error": "ManualRate not found"}, status=status.HTTP_404_NOT_FOUND)
+
+#         # Fetch the related VersionedRate and Rate objects based on the correct relationship field
+#         try:
+#             versioned_rate = VersionedRate.objects.get(manual_rate=manual_rate)  # Adjust if needed
+#             rate = Rate.objects.get(manual_rate=manual_rate)  # Adjust if needed
+#         except (VersionedRate.DoesNotExist, Rate.DoesNotExist):
+#             return Response({"error": "VersionedRate or Rate not found"}, status=status.HTTP_404_NOT_FOUND)
+
+#         # Update VersionedRate and Rate (common in both cases)
+#         versioned_rate.isRateUsed = isRateUsed
+#         versioned_rate.save()
+
+#         rate.isRateUsed = isRateUsed
+#         rate.save()
+
+#         # Update ManualRate
+#         manual_rate.isRateUsed = isRateUsed
+#         manual_rate.save()
+
+#         return Response({"message": "isRateUsed updated successfully"}, status=status.HTTP_200_OK)
+
+
+# class UpadatingRateFrozenInfoListView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     # FOR UPDATE
+#     def put(self, request, manual_rate_id):
+#         try:
+#             # Extract `isRateUsed` value from the request
+#             is_rate_used = request.data.get('isRateUsed', None)
+
+#             if is_rate_used is None:
+#                 return Response({"error": "isRateUsed field is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+#             # Fetch the ManualRate, VersionedRate, and Rate objects
+#             manual_rate = ManualRate.objects.get(id=manual_rate_id)
+#             versioned_rate = VersionedRate.objects.get(id=manual_rate.version_id)  # Assuming foreign key relationship
+#             rate = Rate.objects.get(id=manual_rate_id)  # Assuming foreign key relationship
+
+#             # Update `isRateUsed` for all models
+#             manual_rate.isRateUsed = is_rate_used
+#             versioned_rate.isRateUsed = is_rate_used
+#             rate.isRateUsed = is_rate_used
+
+#             # Save the changes
+#             manual_rate.save()
+#             versioned_rate.save()
+#             rate.save()
+
+#             return Response({"message": "isRateUsed updated successfully."}, status=status.HTTP_200_OK)
+
+#         except ManualRate.DoesNotExist:
+#             return Response({"error": "ManualRate not found."}, status=status.HTTP_404_NOT_FOUND)
+#         except VersionedRate.DoesNotExist:
+#             return Response({"error": "VersionedRate not found."}, status=status.HTTP_404_NOT_FOUND)
+#         except Rate.DoesNotExist:
+#             return Response({"error": "Rate not found."}, status=status.HTTP_404_NOT_FOUND)
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
 class CustomerInfoListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1329,12 +1544,14 @@ class CustomerInfoListView(APIView):
             cust_email = requestData.get('cust_email')
             sales_represent = requestData.get('sales_represent')
             phone = requestData.get('phone')
+            terms_condition = requestData.get('terms_condition')
             
             CustomerInfo.objects.create(
             cust_name=cust_name,
             cust_email=cust_email,
             sales_represent=sales_represent,
-            phone=phone
+            phone=phone,
+            terms_condition=terms_condition,
             )
 
             return Response({'message': 'Customer created successfully'}, status=status.HTTP_201_CREATED)

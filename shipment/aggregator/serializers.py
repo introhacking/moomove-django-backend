@@ -36,6 +36,7 @@ class VersionedRateSerializer(serializers.ModelSerializer):
     destination = DestinationSerializer()
     transit_time = TransitTimeSerializer()
     freight_type = FreightTypeSerializer()
+    cargotype = CompanySerializer()
 
     class Meta:
         model = VersionedRate
@@ -48,6 +49,7 @@ class RateSerializer(serializers.ModelSerializer):
     destination = DestinationSerializer()
     transit_time = TransitTimeSerializer()
     freight_type = FreightTypeSerializer()
+    cargotype = CompanySerializer()
     class Meta:
         model = Rate
         fields = '__all__'
@@ -59,7 +61,7 @@ class RateSerializer1(serializers.ModelSerializer):
     transit_time = TransitTimeSerializer()
     freight_type = FreightTypeSerializer()
     version = VersionedRateSerializer()
-
+    
     class Meta:
         model = Rate
         fields = ('id', 'rate', 'effective_date', 'expiration_date', 'remarks', 'company', 'source', 'destination', 'transit_time', 'freight_type', 'version')
@@ -73,6 +75,8 @@ class ManualRateSerializer(serializers.ModelSerializer):
     transit_time = TransitTimeSerializer()
     freight_type = FreightTypeSerializer()
     version = VersionedRateSerializer()
+    cargotype = CompanySerializer()
+    # comodity = CommoditySerializer() # type: ignore
 
     class Meta:
         model = ManualRate

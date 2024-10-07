@@ -56,8 +56,11 @@ class VersionedRate(models.Model):
     transit_time = models.ForeignKey(TransitTime, on_delete=models.CASCADE)
     freight_type = models.ForeignKey(FreightType, on_delete=models.CASCADE)
     rate = models.DecimalField(max_digits=10, decimal_places=2)
+    free_days = models.IntegerField(default='1')
     spot_filed = models.CharField(max_length=15 , default='spot')
+    # isRateUsed = models.BooleanField(default=False,)
     effective_date = models.DateField()
+    cargotype = models.ForeignKey(Comodity, null=True, on_delete=models.CASCADE)
     expiration_date = models.DateField()
     remarks = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -75,15 +78,18 @@ class Rate(models.Model):
     transit_time = models.ForeignKey(TransitTime, on_delete=models.CASCADE)
     freight_type = models.ForeignKey(FreightType, on_delete=models.CASCADE)
     rate = models.DecimalField(max_digits=10, decimal_places=2)
+    free_days = models.IntegerField(default='1')
     spot_filed = models.CharField(max_length=15 , default='spot')
+    # isRateUsed = models.BooleanField(default=False,)
     effective_date = models.DateField()
+    cargotype = models.ForeignKey(Comodity, null=True, on_delete=models.CASCADE)
     expiration_date = models.DateField()
     remarks = models.TextField(blank=True, null=True)
     version = models.ForeignKey(VersionedRate, on_delete=models.CASCADE, related_name='rates')
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
 
     class Meta:
-        unique_together = ('company', 'source', 'destination', 'transit_time', 'freight_type', 'spot_filed', 'effective_date', 'expiration_date' , 'soft_delete')
+        unique_together = ('company', 'source', 'destination', 'transit_time', 'freight_type', 'spot_filed', 'free_days' ,  'effective_date', 'expiration_date' , 'soft_delete')
 
     def __str__(self):
         # return f"{self.company}: {self.source} to {self.destination} - {self.transit_time} | {self.freight_type}: ${self.rate}"
@@ -99,10 +105,13 @@ class ManualRate(models.Model):
     freight_type = models.ForeignKey(FreightType, on_delete=models.CASCADE)
     transit_time = models.ForeignKey(TransitTime, on_delete=models.CASCADE)
     rate = models.DecimalField(max_digits=10, decimal_places=2)
+    free_days = models.IntegerField(default='1')
+    currency = models.CharField(max_length=15, default='USD')
     effective_date = models.DateField()
-    cargotype = models.CharField(max_length=50)
+    cargotype = models.ForeignKey(Comodity,null=True, on_delete=models.CASCADE)
     direct_shipment = models.BooleanField(blank=True, null=True , default=False) 
     spot_filed = models.CharField(max_length=15 , default='spot')
+    # isRateUsed = models.BooleanField(default=False,)
     transhipment_add_port = models.CharField(blank=True, null=True , max_length=50)
     expiration_date = models.DateField()
     remarks = models.TextField(blank=True, null=True)
@@ -112,10 +121,10 @@ class ManualRate(models.Model):
 
 
     class Meta:
-        unique_together = ('company', 'destination','source', 'direct_shipment','spot_filed', 'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate','effective_date', 'expiration_date', 'remarks', 'terms_condition', 'soft_delete', 'version' )
+        unique_together = ('company', 'destination','source', 'direct_shipment','spot_filed',  'free_days', 'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate', 'currency' , 'effective_date', 'expiration_date', 'remarks', 'terms_condition', 'soft_delete', 'version' )
 
     def __str__(self):
-         return f"{self.company} | {self.source} - {self.destination} | {self.rate} - {self.cargotype} | {self.effective_date} - {self.expiration_date}"
+         return f"{self.company} | {self.source} - {self.destination} | {self.rate} - {self.currency} - {self.cargotype} | {self.effective_date} - {self.expiration_date}"
 
 # class SearchHistory(models.Model):
 #     user = models.ForeignKey(Company, on_delete=models.CASCADE)
@@ -137,11 +146,12 @@ class ManualRate(models.Model):
 class CustomerInfo(models.Model):
     cust_name = models.CharField(max_length=100)
     cust_email = models.EmailField(max_length=80)
-    sales_represent = models.CharField(max_length=256)
+    sales_represent = models.CharField(max_length=150)
     phone = models.CharField(max_length=20)
+    terms_condition = models.CharField(max_length=256, default='Terms & Condition')
 
     class Meta:
-        unique_together = ('cust_name', 'cust_email', 'sales_represent','phone')
+        unique_together = ('cust_name', 'cust_email', 'sales_represent','phone', 'terms_condition')
 
     def __str__(self):
         return f"{self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
