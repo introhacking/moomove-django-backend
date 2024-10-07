@@ -1,3 +1,6 @@
 venv
 lib
 *.json
+# Ignore Python bytecode files and cache directories
+*.pyc
+__pycache__/
