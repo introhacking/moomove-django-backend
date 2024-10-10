@@ -964,6 +964,7 @@ class ManualRateListView(APIView):
     def post(self, request):
       try:
         requestData = request.data
+        # print(requestData)
         company_name = requestData.get('company')
         source_name = requestData.get('source')
         destination_name = requestData.get('destination')
@@ -1045,6 +1046,10 @@ class ManualRateListView(APIView):
             cargotype=commodity_name_instance,
             rate=requestData.get('rate'),
             free_days=requestData.get('free_days'),
+            free_days_comment=requestData.get('free_days_comment'),
+            currency=requestData.get('currency'),
+            hazardous=requestData.get('hazardous'),
+            un_number=requestData.get('un_number'),
             spot_filed=requestData.get('spot_filed'),
             effective_date=requestData.get('effective_date'),
             expiration_date=requestData.get('expiration_date'),
@@ -1061,7 +1066,10 @@ class ManualRateListView(APIView):
             cargotype=commodity_name_instance,
             rate=requestData.get('rate'),
             free_days=requestData.get('free_days'),
+            free_days_comment=requestData.get('free_days_comment'),
             currency=requestData.get('currency'),
+            hazardous=requestData.get('hazardous'),
+            un_number=requestData.get('un_number'),
             direct_shipment=requestData.get('direct_shipment'),
             spot_filed=requestData.get('spot_filed'),
             transhipment_add_port=requestData.get('transhipment_add_port'),
@@ -1081,6 +1089,10 @@ class ManualRateListView(APIView):
             cargotype=commodity_name_instance,
             rate=requestData.get('rate'),
             free_days=requestData.get('free_days'),
+            free_days_comment=requestData.get('free_days_comment'),
+            currency=requestData.get('currency'),
+            hazardous=requestData.get('hazardous'),
+            un_number=requestData.get('un_number'),
             spot_filed=requestData.get('spot_filed'),
             effective_date=requestData.get('effective_date'),
             expiration_date=requestData.get('expiration_date'),
@@ -1232,11 +1244,14 @@ class ManualRateListView(APIView):
             manual_rate_instance.destination = destination_instance
             manual_rate_instance.freight_type = freight_type_instance
             manual_rate_instance.transit_time = transit_time_instance
-            manual_rate_instance.cargotype = commodity_instance
+            manual_rate_instance.cargotype = commodity_instance.name
             manual_rate_instance.rate = requestData.get('rate', manual_rate_instance.rate)  # Ensure correct type
             manual_rate_instance.direct_shipment = requestData.get('direct_shipment', manual_rate_instance.direct_shipment)
             manual_rate_instance.spot_filed = requestData.get('spot_filed', manual_rate_instance.spot_filed)
+            manual_rate_instance.hazardous = requestData.get('hazardous', manual_rate_instance.hazardous)
+            manual_rate_instance.un_number = requestData.get('un_number', manual_rate_instance.un_number)
             manual_rate_instance.free_days = int(requestData.get('free_days', manual_rate_instance.free_days))
+            manual_rate_instance.free_days_comment = requestData.get('free_days_comment', manual_rate_instance.free_days_comment)
             manual_rate_instance.transhipment_add_port = requestData.get('transhipment_add_port', manual_rate_instance.transhipment_add_port)
             manual_rate_instance.effective_date = requestData.get('effective_date', manual_rate_instance.effective_date)
             manual_rate_instance.expiration_date = requestData.get('expiration_date', manual_rate_instance.expiration_date)
@@ -1255,6 +1270,7 @@ class ManualRateListView(APIView):
                     cargotype=commodity_instance
                 )
             except VersionedRate.DoesNotExist:
+                print(VersionedRate)
                 return Response({"detail": "VersionedRate not found."}, status=status.HTTP_404_NOT_FOUND)
 
             # Update versioned_rate fields
@@ -1262,6 +1278,10 @@ class ManualRateListView(APIView):
             versioned_rate_instance.free_days = int(requestData.get('free_days', versioned_rate_instance.free_days))
             versioned_rate_instance.effective_date = requestData.get('effective_date', versioned_rate_instance.effective_date)
             versioned_rate_instance.expiration_date = requestData.get('expiration_date', versioned_rate_instance.expiration_date)
+            versioned_rate_instance.hazardous = requestData.get('hazardous', versioned_rate_instance.hazardous)
+            versioned_rate_instance.un_number = requestData.get('un_number', versioned_rate_instance.un_number)
+            versioned_rate_instance.free_days_comment = requestData.get('free_days_comment', versioned_rate_instance.free_days_comment)
+
             # versioned_rate_instance.isRateUsed = requestData.get('isRateUsed', versioned_rate_instance.isRateUsed)
             versioned_rate_instance.remarks = requestData.get('remarks', versioned_rate_instance.remarks)
             versioned_rate_instance.save()
@@ -1283,6 +1303,9 @@ class ManualRateListView(APIView):
             rate_instance.free_days = int(requestData.get('free_days', rate_instance.free_days))
             rate_instance.effective_date = requestData.get('effective_date', rate_instance.effective_date)
             rate_instance.expiration_date = requestData.get('expiration_date', rate_instance.expiration_date)
+            rate_instance.hazardous = requestData.get('hazardous', rate_instance.hazardous)
+            rate_instance.un_number = requestData.get('un_number', rate_instance.un_number)
+            rate_instance.free_days_comment = requestData.get('free_days_comment', rate_instance.free_days_comment)
             # rate_instance.isRateUsed = requestData.get('isRateUsed', rate_instance.isRateUsed)
             rate_instance.version = versioned_rate_instance
             rate_instance.remarks = requestData.get('remarks', rate_instance.remarks)

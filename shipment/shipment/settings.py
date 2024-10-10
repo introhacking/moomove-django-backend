@@ -74,7 +74,7 @@ CORS_ALLOWED_ORIGINS = [
     # Add other allowed origins as needed
     'http://35.154.191.16:8000',
     
-    'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com'    # FOR AWS 
+    # 'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com/'    # FOR AWS 
 ] 
 
 SIMPLE_JWT = {
@@ -127,15 +127,15 @@ WSGI_APPLICATION = 'shipment.wsgi.application'
 
 
 # LOCAL DATABASE CONNECTION HERE
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'moomovedb',
-#         'USER': 'postgres',
-#         'PASSWORD': 'pushparaj',
-#         'HOST': 'localhost'
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'moomovedb',
+        'USER': 'postgres',
+        'PASSWORD': 'pushparaj',
+        'HOST': 'localhost'
+    }
+}
 
 # CLOUD(AWS) DATABASE CONNECTION HERE
 
@@ -148,16 +148,16 @@ WSGI_APPLICATION = 'shipment.wsgi.application'
 # pwd: pushparaj
 # user: pushparaj
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'moomove_DB',
-        'USER': 'moomove',
-        'PASSWORD': 'Moomove123',
-        'HOST': 'moomovedb.cncigou2sueo.ap-south-1.rds.amazonaws.com',
-        'PORT': '5432'
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'moomove_DB',
+#         'USER': 'moomove',
+#         'PASSWORD': 'Moomove123',
+#         'HOST': 'moomovedb.cncigou2sueo.ap-south-1.rds.amazonaws.com',
+#         'PORT': '5432'
+#     }
+# }
 
 # DATABASES = {
 #      'default': {
