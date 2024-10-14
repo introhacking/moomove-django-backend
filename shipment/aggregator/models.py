@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 
 from django.utils import timezone    # new for search history
 from datetime import timedelta       # new for search history
@@ -50,6 +51,7 @@ class IncoTerm(models.Model):
         return self.rule
 
 class VersionedRate(models.Model):
+    unique_uuid = models.CharField(max_length=12, unique=True, null=True, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
@@ -77,6 +79,7 @@ class VersionedRate(models.Model):
         return f"{self.company}: {self.source} to {self.destination} - {self.transit_time} | {self.freight_type}: ${self.rate} (Versioned)"
 
 class Rate(models.Model):
+    unique_uuid = models.CharField(max_length=12, unique=True, null=True, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
@@ -108,7 +111,7 @@ class Rate(models.Model):
 # MANUAL RATE 
 class ManualRate(models.Model):
     # logo = models.ImageField(upload_to='company_logos/', max_length=255, blank=True, null=True)
-
+    unique_uuid = models.CharField(max_length=12, unique=True, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)

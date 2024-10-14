@@ -31,7 +31,7 @@ from drf_spectacular.utils import extend_schema
 from drf_yasg.utils import swagger_auto_schema
 from google.oauth2 import service_account
 from google.cloud import documentai_v1beta3 as documentai
-
+import uuid
 
 @extend_schema(
     request=UserSerializer,
@@ -1017,27 +1017,13 @@ class ManualRateListView(APIView):
         if existing_manual_rate and existing_versioned_rate and existing_rate:
             return Response({"message": "already exists"}, status=status.HTTP_200_OK)
 
-        # if existing_manual_rate and existing_versioned_rate and existing_rate:
-            if (
-                existing_manual_rate.rate == requestData.get('rate') and
-                # existing_manual_rate.freight_type == requestData.get('freight_type') and
-                existing_manual_rate.effective_date == requestData.get('effective_date') and
-                existing_manual_rate.expiration_date == requestData.get('expiration_date') and
-                
-                existing_versioned_rate.rate == requestData.get('rate') and
-                # existing_versioned_rate.freight_type == requestData.get('freight_type') and
-                existing_versioned_rate.effective_date == requestData.get('effective_date') and
-                existing_versioned_rate.expiration_date == requestData.get('expiration_date') and
-
-                existing_rate.rate == requestData.get('rate') and
-                # existing_rate.freight_type == requestData.get('freight_type') and
-                existing_rate.effective_date == requestData.get('effective_date') and
-                existing_rate.expiration_date == requestData.get('expiration_date')
-            ):
-             return Response({"message": "already exists"}, status=status.HTTP_200_OK)
+         # Generate a common UUID (trimmed to 12 characters)
+        # common_uuid = str(uuid.uuid4())[:12]    
+        common_uuid = str(uuid.uuid4()).replace('-', '')[:12]    
 
         # If any value is different, create new entries in ManualRate, VersionedRate, and Rate
         versioned_rate = VersionedRate.objects.create(
+            unique_uuid=common_uuid,
             company=company_instance,
             source=source_instance,
             destination=destination_instance,
@@ -1058,6 +1044,7 @@ class ManualRateListView(APIView):
         )
 
         manual_rate = ManualRate.objects.create(
+            unique_uuid=common_uuid,
             company=company_instance,
             source=source_instance,
             destination=destination_instance,
@@ -1081,6 +1068,7 @@ class ManualRateListView(APIView):
         )
 
         Rate.objects.create(
+            unique_uuid=common_uuid,
             company=company_instance,
             source=source_instance,
             destination=destination_instance,
@@ -1196,14 +1184,14 @@ class ManualRateListView(APIView):
     # UPDATING FUNCTION HERE
 
 
-    def put(self, request, manual_rate_id):
+    def put(self, request, unique_uuid):
         try:
             requestData = request.data
             print(requestData)
 
             # Retrieve the existing ManualRate object
             try:
-                manual_rate_instance = ManualRate.objects.get(id=manual_rate_id)
+                manual_rate_instance = ManualRate.objects.get(unique_uuid=unique_uuid)
             except ManualRate.DoesNotExist:
                 return Response({"detail": "ManualRate not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1250,6 +1238,7 @@ class ManualRateListView(APIView):
             manual_rate_instance.spot_filed = requestData.get('spot_filed', manual_rate_instance.spot_filed)
             manual_rate_instance.hazardous = requestData.get('hazardous', manual_rate_instance.hazardous)
             manual_rate_instance.un_number = requestData.get('un_number', manual_rate_instance.un_number)
+            manual_rate_instance.currency = requestData.get('currency', manual_rate_instance.currency)
             manual_rate_instance.free_days = int(requestData.get('free_days', manual_rate_instance.free_days))
             manual_rate_instance.free_days_comment = requestData.get('free_days_comment', manual_rate_instance.free_days_comment)
             manual_rate_instance.transhipment_add_port = requestData.get('transhipment_add_port', manual_rate_instance.transhipment_add_port)
@@ -1277,6 +1266,7 @@ class ManualRateListView(APIView):
             versioned_rate_instance.rate = requestData.get('rate', versioned_rate_instance.rate)
             versioned_rate_instance.free_days = int(requestData.get('free_days', versioned_rate_instance.free_days))
             versioned_rate_instance.effective_date = requestData.get('effective_date', versioned_rate_instance.effective_date)
+            versioned_rate_instance.currency = requestData.get('currency', versioned_rate_instance.currency)
             versioned_rate_instance.expiration_date = requestData.get('expiration_date', versioned_rate_instance.expiration_date)
             versioned_rate_instance.hazardous = requestData.get('hazardous', versioned_rate_instance.hazardous)
             versioned_rate_instance.un_number = requestData.get('un_number', versioned_rate_instance.un_number)
@@ -1302,6 +1292,7 @@ class ManualRateListView(APIView):
             rate_instance.rate = requestData.get('rate', rate_instance.rate)
             rate_instance.free_days = int(requestData.get('free_days', rate_instance.free_days))
             rate_instance.effective_date = requestData.get('effective_date', rate_instance.effective_date)
+            rate_instance.currency = requestData.get('currency', rate_instance.currency)
             rate_instance.expiration_date = requestData.get('expiration_date', rate_instance.expiration_date)
             rate_instance.hazardous = requestData.get('hazardous', rate_instance.hazardous)
             rate_instance.un_number = requestData.get('un_number', rate_instance.un_number)
@@ -1323,14 +1314,14 @@ class ManualRateListView(APIView):
            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-    # def put(self, request, manual_rate_id):
+    # def put(self, request, unique_uuid):
     #     try:
     #         requestData = request.data
     #         print(requestData)
         
     #     # Retrieve the existing ManualRate object
     #         try:
-    #            manual_rate_instance = ManualRate.objects.get(id=manual_rate_id)
+    #            manual_rate_instance = ManualRate.objects.get(id=unique_uuid)
     #         except ManualRate.DoesNotExist:
     #             return Response({"detail": "ManualRate not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1418,17 +1409,17 @@ class ManualRateListView(APIView):
    
     #  FOR DETELE
 
-    def delete(self, request, manual_rate_id):
+    def delete(self, request, unique_uuid):
         try:
             # Retrieve the existing ManualRate object
             try:
-                manual_rate_instance = ManualRate.objects.get(id=manual_rate_id, soft_delete=False)
-                version_rate_instance = VersionedRate.objects.get(id=manual_rate_id, soft_delete=False)
-                rate_instance = Rate.objects.get(id=manual_rate_id, soft_delete=False)
-                # company_instance = Company.objects.get(id=manual_rate_id, soft_delete=False)
-                source_instance = Source.objects.get(id=manual_rate_id, soft_delete=False)
-                freight_instance = FreightType.objects.get(id=manual_rate_id, soft_delete=False)
-                destination_instance = Destination.objects.get(id=manual_rate_id, soft_delete=False)
+                manual_rate_instance = ManualRate.objects.get(unique_uuid=unique_uuid, soft_delete=False)
+                version_rate_instance = VersionedRate.objects.get(unique_uuid=unique_uuid, soft_delete=False)
+                rate_instance = Rate.objects.get(unique_uuid=unique_uuid, soft_delete=False)
+                # company_instance = Company.objects.get(id=unique_uuid, soft_delete=False)
+                # source_instance = Source.objects.get(id=unique_uuid, soft_delete=False)
+                # freight_instance = FreightType.objects.get(id=unique_uuid, soft_delete=False)
+                # destination_instance = Destination.objects.get(id=unique_uuid, soft_delete=False)
             except ManualRate.DoesNotExist:
                 return Response({"detail": "ManualRate not found."}, status=status.HTTP_404_NOT_FOUND)
             
@@ -1438,34 +1429,34 @@ class ManualRateListView(APIView):
             except Rate.DoesNotExist:
                 return Response({"detail": "Rate not found."}, status=status.HTTP_404_NOT_FOUND)
             
-            except Company.DoesNotExist:
-                return Response({"detail": "Company not found."}, status=status.HTTP_404_NOT_FOUND)
+            # except Company.DoesNotExist:
+            #     return Response({"detail": "Company not found."}, status=status.HTTP_404_NOT_FOUND)
             
-            except Source.DoesNotExist:
-                return Response({"detail": "Source not found."}, status=status.HTTP_404_NOT_FOUND)
+            # except Source.DoesNotExist:
+                # return Response({"detail": "Source not found."}, status=status.HTTP_404_NOT_FOUND)
             
-            except FreightType.DoesNotExist:
-                return Response({"detail": "FreightType not found."}, status=status.HTTP_404_NOT_FOUND)
+            # except FreightType.DoesNotExist:
+            #     return Response({"detail": "FreightType not found."}, status=status.HTTP_404_NOT_FOUND)
             
-            except Destination.DoesNotExist:
-                return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
+            # except Destination.DoesNotExist:
+                # return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
 
             # Perform the soft delete
             manual_rate_instance.soft_delete = True
             version_rate_instance.soft_delete = True
             rate_instance.soft_delete = True
             # company_instance.soft_delete = True
-            source_instance.soft_delete = True
-            freight_instance.soft_delete = True
-            destination_instance.soft_delete = True
+            # source_instance.soft_delete = True
+            # freight_instance.soft_delete = True
+            # destination_instance.soft_delete = True
 
             manual_rate_instance.save()
             version_rate_instance.save()
             rate_instance.save()
             # company_instance.save()
-            source_instance.save()
-            freight_instance.save()
-            destination_instance.save()
+            # source_instance.save()
+            # freight_instance.save()
+            # destination_instance.save()
 
             return Response({'message': 'ManualRate soft-deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
@@ -1514,7 +1505,7 @@ class ManualRateListView(APIView):
 #     permission_classes = [IsAuthenticated]
 
 #     # FOR UPDATE
-#     def put(self, request, manual_rate_id):
+#     def put(self, request, unique_uuid):
 #         try:
 #             # Extract `isRateUsed` value from the request
 #             is_rate_used = request.data.get('isRateUsed', None)
@@ -1523,9 +1514,9 @@ class ManualRateListView(APIView):
 #                 return Response({"error": "isRateUsed field is required."}, status=status.HTTP_400_BAD_REQUEST)
 
 #             # Fetch the ManualRate, VersionedRate, and Rate objects
-#             manual_rate = ManualRate.objects.get(id=manual_rate_id)
+#             manual_rate = ManualRate.objects.get(id=unique_uuid)
 #             versioned_rate = VersionedRate.objects.get(id=manual_rate.version_id)  # Assuming foreign key relationship
-#             rate = Rate.objects.get(id=manual_rate_id)  # Assuming foreign key relationship
+#             rate = Rate.objects.get(id=unique_uuid)  # Assuming foreign key relationship
 
 #             # Update `isRateUsed` for all models
 #             manual_rate.isRateUsed = is_rate_used
