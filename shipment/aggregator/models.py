@@ -5,6 +5,7 @@ from django.utils import timezone    # new for search history
 from datetime import timedelta       # new for search history
 
 class Source(models.Model):
+    unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False) 
     name = models.CharField(max_length=100)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
 
@@ -12,6 +13,7 @@ class Source(models.Model):
         return self.name
 
 class Destination(models.Model):
+    unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
     name = models.CharField(max_length=100)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
 
@@ -33,6 +35,7 @@ class FreightType(models.Model):
         return self.type
 
 class Company(models.Model):
+    unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
     name = models.CharField(max_length=255)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
     # logo = models.ImageField(upload_to='company_logos/', max_length=255)
@@ -51,7 +54,7 @@ class IncoTerm(models.Model):
         return self.rule
 
 class VersionedRate(models.Model):
-    unique_uuid = models.CharField(max_length=12, unique=True, null=True, editable=False)
+    unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
@@ -66,9 +69,14 @@ class VersionedRate(models.Model):
     effective_date = models.DateField()
     # cargotype = models.ForeignKey(Comodity, null=True, on_delete=models.CASCADE)
     cargotype = models.CharField(max_length=15, null=True)
+    vessel_name = models.CharField(max_length=50, null=True)
+    voyage = models.CharField(max_length=50, null=True)
+    haz_class = models.CharField(max_length=50, null=True)
+    packing_group = models.CharField(max_length=50, null=True)
     hazardous = models.BooleanField(default=False, null=True)
     un_number = models.CharField(max_length=4, null=True)
     expiration_date = models.DateField()
+    terms_condition = models.CharField(blank=True, null=True)
     remarks = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -79,7 +87,7 @@ class VersionedRate(models.Model):
         return f"{self.company}: {self.source} to {self.destination} - {self.transit_time} | {self.freight_type}: ${self.rate} (Versioned)"
 
 class Rate(models.Model):
-    unique_uuid = models.CharField(max_length=12, unique=True, null=True, editable=False)
+    unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
@@ -94,15 +102,20 @@ class Rate(models.Model):
     effective_date = models.DateField()
     # cargotype = models.ForeignKey(Comodity, null=True, on_delete=models.CASCADE)
     cargotype = models.CharField(max_length=15, null=True)
+    vessel_name = models.CharField(max_length=50, null=True)
+    voyage = models.CharField(max_length=50, null=True)
+    haz_class = models.CharField(max_length=50, null=True)
+    packing_group = models.CharField(max_length=50, null=True)
     hazardous = models.BooleanField(default=False, null=True)
     un_number = models.CharField(max_length=4, null=True)
     expiration_date = models.DateField()
+    terms_condition = models.CharField(blank=True, null=True)
     remarks = models.TextField(blank=True, null=True)
     version = models.ForeignKey(VersionedRate, on_delete=models.CASCADE, related_name='rates')
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
 
     class Meta:
-        unique_together = ('company', 'source', 'destination', 'transit_time', 'freight_type', 'currency' ,'spot_filed', 'free_days' , 'free_days_comment' ,  'hazardous' , 'un_number', 'effective_date', 'expiration_date' , 'soft_delete')
+        unique_together = ('company', 'source', 'destination', 'transit_time', 'freight_type', 'currency' ,'spot_filed', 'terms_condition', 'free_days' , 'free_days_comment' ,  'hazardous' , 'un_number', 'effective_date', 'expiration_date' , 'soft_delete')
 
     def __str__(self):
         # return f"{self.company}: {self.source} to {self.destination} - {self.transit_time} | {self.freight_type}: ${self.rate}"
@@ -111,7 +124,7 @@ class Rate(models.Model):
 # MANUAL RATE 
 class ManualRate(models.Model):
     # logo = models.ImageField(upload_to='company_logos/', max_length=255, blank=True, null=True)
-    unique_uuid = models.CharField(max_length=12, unique=True, editable=False)
+    unique_uuid = models.CharField(max_length=16, unique=True, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
@@ -124,11 +137,15 @@ class ManualRate(models.Model):
     effective_date = models.DateField()
     # cargotype = models.ForeignKey(Comodity,null=True, on_delete=models.CASCADE)
     cargotype = models.CharField(max_length=15, null=True)
+    vessel_name = models.CharField(max_length=50, null=True)
+    voyage = models.CharField(max_length=50, null=True)
+    haz_class = models.CharField(max_length=50, null=True)
+    packing_group = models.CharField(max_length=50, null=True)
     hazardous = models.BooleanField(default=False, null=True)
     un_number = models.CharField(max_length=4, null=True)
     direct_shipment = models.BooleanField(blank=True, null=True , default=False) 
     spot_filed = models.CharField(max_length=15 , default='spot')
-    # isRateUsed = models.BooleanField(default=False,)
+    isRateUsed = models.BooleanField(default=False)
     transhipment_add_port = models.CharField(blank=True, null=True , max_length=50)
     expiration_date = models.DateField()
     remarks = models.TextField(blank=True, null=True)
@@ -161,6 +178,7 @@ class ManualRate(models.Model):
 #     class Meta:
 #         ordering = ['-created_at']
 class CustomerInfo(models.Model):
+    operator_name = models.CharField(max_length=60)
     cust_name = models.CharField(max_length=100)
     cust_email = models.EmailField(max_length=80)
     sales_represent = models.CharField(max_length=150)
@@ -171,7 +189,7 @@ class CustomerInfo(models.Model):
         unique_together = ('cust_name', 'cust_email', 'sales_represent','phone', 'terms_condition')
 
     def __str__(self):
-        return f"{self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
+        return f"{self.operator_name} | {self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
      
 class Registration(models.Model):
     name = models.CharField(max_length=50)

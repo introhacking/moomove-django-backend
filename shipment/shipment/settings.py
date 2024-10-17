@@ -72,9 +72,11 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:4200',  # Adjust to match your frontend URL
     # Add other allowed origins as needed
-    'http://35.154.191.16:8000',
-    
+    # 'http://35.154.191.16:8000',
     # 'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com/'    # FOR AWS 
+
+    'http://testmoomoveui.s3-website.ap-south-1.amazonaws.com'    # TEST FOR AWS 
+    'http://13.234.231.216:8000',    # TEST
 ] 
 
 SIMPLE_JWT = {
@@ -127,15 +129,15 @@ WSGI_APPLICATION = 'shipment.wsgi.application'
 
 
 # LOCAL DATABASE CONNECTION HERE
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'moomovedb',
-        'USER': 'postgres',
-        'PASSWORD': 'pushparaj',
-        'HOST': 'localhost'
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'moomovedb',
+#         'USER': 'postgres',
+#         'PASSWORD': 'pushparaj',
+#         'HOST': 'localhost'
+#     }
+# }
 
 # CLOUD(AWS) DATABASE CONNECTION HERE
 
@@ -143,10 +145,7 @@ DATABASES = {
 # pwd: Moomove123
 # user: moomove
 
-#  NEW DATABASE CONFIG DETAILS
-# endpoint: moomovedb.cncigou2sueo.ap-south-1.rds.amazonaws.com
-# pwd: pushparaj
-# user: pushparaj
+# PRODUCTION DATABASE CONFIG DETAILS
 
 # DATABASES = {
 #     'default': {
@@ -159,21 +158,18 @@ DATABASES = {
 #     }
 # }
 
-# DATABASES = {
-#      'default': {
+# TEST DATABASE CONFIG DETAILS
 
-#          'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#          'NAME': 'shipment',
-#          'USER': 'postgres',
-#         #  'PASSWORD': 'new_password',
-#          'PASSWORD': 'mypassword',
-#          'HOST': '192.168.120.55',
-#         #  'HOST': '172.16.16.77',
-#         #  'HOST': '192.168.1.7',
-#          'PORT': '5432',
-
-#      }
-# }
+DATABASES = {
+     'default': {
+         'ENGINE': 'django.db.backends.postgresql',
+         'NAME': 'testdbbymanish',
+         'USER': 'testdbbymanish',
+         'PASSWORD': 'testdbbymanish',
+         'HOST': 'testdbbymanish.cncigou2sueo.ap-south-1.rds.amazonaws.com',
+         'PORT': '5432',
+     }
+}
 
 
 # Password validation
