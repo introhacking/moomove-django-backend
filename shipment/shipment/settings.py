@@ -147,16 +147,16 @@ WSGI_APPLICATION = 'shipment.wsgi.application'
 
 # PRODUCTION DATABASE CONFIG DETAILS
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'moomove_DB',
-#         'USER': 'moomove',
-#         'PASSWORD': 'Moomove123',
-#         'HOST': 'moomovedb.cncigou2sueo.ap-south-1.rds.amazonaws.com',
-#         'PORT': '5432'
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'moomove_DB',
+        'USER': 'moomove',
+        'PASSWORD': 'Moomove123',
+        'HOST': 'moomovedb.cncigou2sueo.ap-south-1.rds.amazonaws.com',
+        'PORT': '5432'
+    }
+}
 
 # TEST DATABASE CONFIG DETAILS
 
