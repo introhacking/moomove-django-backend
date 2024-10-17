@@ -127,15 +127,15 @@ WSGI_APPLICATION = 'shipment.wsgi.application'
 
 
 # LOCAL DATABASE CONNECTION HERE
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'moomovedb',
-        'USER': 'postgres',
-        'PASSWORD': 'pushparaj',
-        'HOST': 'localhost'
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'moomovedb',
+#         'USER': 'postgres',
+#         'PASSWORD': 'pushparaj',
+#         'HOST': 'localhost'
+#     }
+# }
 
 # CLOUD(AWS) DATABASE CONNECTION HERE
 
@@ -148,16 +148,16 @@ DATABASES = {
 # pwd: pushparaj
 # user: pushparaj
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'moomove_DB',
-#         'USER': 'moomove',
-#         'PASSWORD': 'Moomove123',
-#         'HOST': 'moomovedb.cncigou2sueo.ap-south-1.rds.amazonaws.com',
-#         'PORT': '5432'
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'moomove_DB',
+        'USER': 'moomove',
+        'PASSWORD': 'Moomove123',
+        'HOST': 'moomovedb.cncigou2sueo.ap-south-1.rds.amazonaws.com',
+        'PORT': '5432'
+    }
+}
 
 # DATABASES = {
 #      'default': {
