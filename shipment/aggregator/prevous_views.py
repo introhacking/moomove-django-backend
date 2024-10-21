@@ -975,9 +975,9 @@ class ManualRateListView(APIView):
                 commodity_name = requestData.get('cargotype')
 
                 # Ensure required fields are provided
-                required_fields = [company_name, source_name, destination_name, freight_type, transit_time]
+                required_fields = [company_name, source_name, destination_name, freight_type, transit_time, commodity_name]
                 if not all(required_fields):
-                    return Response({"message": required_fields }, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"message": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
 
                 # Create or retrieve the instances
                 company_instance, _ = Company.objects.get_or_create(name=company_name)
