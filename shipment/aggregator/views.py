@@ -964,7 +964,9 @@ class ManualRateListView(APIView):
 
     def post(self, request):
         try:
+            with transaction.atomic():   
                 requestData = request.data
+                print(requestData)
 
                 # Extract request data
                 company_name = requestData.get('company')
@@ -1025,6 +1027,7 @@ class ManualRateListView(APIView):
                     hazardous=requestData.get('hazardous'),
                     un_number=requestData.get('un_number'),
                     spot_filed=requestData.get('spot_filed'),
+                    isRateTypeStatus=requestData.get('isRateTypeStatus'),
                     vessel_name=requestData.get('vessel_name'),
                     voyage=requestData.get('voyage'),
                     haz_class=requestData.get('haz_class'),
@@ -1053,6 +1056,7 @@ class ManualRateListView(APIView):
                     un_number=requestData.get('un_number'),
                     direct_shipment=requestData.get('direct_shipment'),
                     spot_filed=requestData.get('spot_filed'),
+                    isRateTypeStatus=requestData.get('isRateTypeStatus'),
                     vessel_name=requestData.get('vessel_name'),
                     voyage=requestData.get('voyage'),
                     haz_class=requestData.get('haz_class'),
@@ -1081,6 +1085,7 @@ class ManualRateListView(APIView):
                     hazardous=requestData.get('hazardous'),
                     un_number=requestData.get('un_number'),
                     spot_filed=requestData.get('spot_filed'),
+                    isRateTypeStatus=requestData.get('isRateTypeStatus'),
                     vessel_name=requestData.get('vessel_name'),
                     voyage=requestData.get('voyage'),
                     haz_class=requestData.get('haz_class'),
@@ -1257,7 +1262,7 @@ class ManualRateListView(APIView):
     def put(self, request, unique_uuid):
         try:
             requestData = request.data
-            print(requestData)
+            # print(requestData)
 
             # Retrieve the existing ManualRate object
             try:
