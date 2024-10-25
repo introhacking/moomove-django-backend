@@ -831,7 +831,7 @@ class RateWithVersionsAPIView(APIView):
     permission_classes=[IsAuthenticated]
 
     def get(self, request, company_id):
-        print("company_id: ", company_id)
+        # print("company_id: ", company_id)
         try:
             # Fetch the latest rates (is_current=True) for the given company
             rates = Rate.objects.filter(company_id=company_id,soft_delete=False)
@@ -847,7 +847,7 @@ class RateWithVersionsAPIView(APIView):
 
             # rate_serializer = RateSerializer(rates, many=True)
             rate_serializer = RateSerializer(rates, many=True)
-            print(rate_serializer.data)
+            # print(rate_serializer.data)
             # count = len(rate_serializer.data)
             # print("count: ", count)
             return Response(rate_serializer.data, status=status.HTTP_200_OK)
@@ -1032,6 +1032,7 @@ class ManualRateListView(APIView):
                     voyage=requestData.get('voyage'),
                     haz_class=requestData.get('haz_class'),
                     packing_group=requestData.get('packing_group'),
+                    transhipment_add_port=requestData.get('transhipment_add_port'),
                     effective_date=requestData.get('effective_date'),
                     expiration_date=requestData.get('expiration_date'),
                     remarks=requestData.get('remarks'),
@@ -1090,6 +1091,7 @@ class ManualRateListView(APIView):
                     voyage=requestData.get('voyage'),
                     haz_class=requestData.get('haz_class'),
                     packing_group=requestData.get('packing_group'),
+                    transhipment_add_port=requestData.get('transhipment_add_port'),
                     effective_date=requestData.get('effective_date'),
                     expiration_date=requestData.get('expiration_date'),
                     version=versioned_rate,
@@ -1261,9 +1263,9 @@ class ManualRateListView(APIView):
 
     def put(self, request, unique_uuid):
         try:
+           with transaction.atomic():
             requestData = request.data
             # print(requestData)
-
             # Retrieve the existing ManualRate object
             try:
                 manual_rate_instance = ManualRate.objects.get(unique_uuid=unique_uuid)
@@ -1296,10 +1298,11 @@ class ManualRateListView(APIView):
             except TransitTime.DoesNotExist:
                 return Response({"detail": "Transit time not found."}, status=status.HTTP_404_NOT_FOUND)
 
-            try:
-                commodity_instance = Comodity.objects.get(name=requestData.get('cargotype'))
-            except Comodity.DoesNotExist:
-                return Response({"detail": "Commodity not found."}, status=status.HTTP_404_NOT_FOUND)
+            # try:
+            #     commodity_instance = Comodity.objects.get(name=requestData.get('cargotype'))
+            # except Comodity.DoesNotExist:
+            #     return Response({"detail": "Commodity not found."}, status=status.HTTP_404_NOT_FOUND)
+            
 
             # Update the ManualRate instance with the new data
             manual_rate_instance.company = company_instance
@@ -1307,18 +1310,19 @@ class ManualRateListView(APIView):
             manual_rate_instance.destination = destination_instance
             manual_rate_instance.freight_type = freight_type_instance
             manual_rate_instance.transit_time = transit_time_instance
-            manual_rate_instance.cargotype = commodity_instance.name
+            manual_rate_instance.cargotype = requestData.get('cargotype', manual_rate_instance.cargotype)
             manual_rate_instance.rate = requestData.get('rate', manual_rate_instance.rate)  # Ensure correct type
             manual_rate_instance.direct_shipment = requestData.get('direct_shipment', manual_rate_instance.direct_shipment)
             manual_rate_instance.spot_filed = requestData.get('spot_filed', manual_rate_instance.spot_filed)
+            manual_rate_instance.isRateTypeStatus = requestData.get('isRateTypeStatus', manual_rate_instance.isRateTypeStatus)
             manual_rate_instance.hazardous = requestData.get('hazardous', manual_rate_instance.hazardous)
             manual_rate_instance.un_number = requestData.get('un_number', manual_rate_instance.un_number)
             manual_rate_instance.currency = requestData.get('currency', manual_rate_instance.currency)
 
-            manual_rate_instance.vessel_name=requestData.get('vessel_name', manual_rate_instance.vessel_name),
-            manual_rate_instance.voyage=requestData.get('voyage', manual_rate_instance.voyage),
-            manual_rate_instance.haz_class=requestData.get('haz_class', manual_rate_instance.haz_class),
-            manual_rate_instance.packing_group=requestData.get('packing_group', manual_rate_instance.packing_group), 
+            manual_rate_instance.vessel_name = requestData.get('vessel_name', manual_rate_instance.vessel_name)
+            manual_rate_instance.voyage = requestData.get('voyage', manual_rate_instance.voyage)
+            manual_rate_instance.haz_class = requestData.get('haz_class', manual_rate_instance.haz_class)
+            manual_rate_instance.packing_group = requestData.get('packing_group', manual_rate_instance.packing_group) 
 
             manual_rate_instance.free_days = int(requestData.get('free_days', manual_rate_instance.free_days))
             manual_rate_instance.free_days_comment = requestData.get('free_days_comment', manual_rate_instance.free_days_comment)
@@ -1327,7 +1331,7 @@ class ManualRateListView(APIView):
             manual_rate_instance.expiration_date = requestData.get('expiration_date', manual_rate_instance.expiration_date)
             manual_rate_instance.remarks = requestData.get('remarks', manual_rate_instance.remarks)
             manual_rate_instance.terms_condition = requestData.get('terms_condition', manual_rate_instance.terms_condition)
-            # manual_rate_instance.isRateUsed = requestData.get('isRateUsed', manual_rate_instance.isRateUsed)
+            manual_rate_instance.isRateUsed = requestData.get('isRateUsed', manual_rate_instance.isRateUsed)
 
             # Handle the versioned rate update if necessary
             try:
@@ -1337,28 +1341,32 @@ class ManualRateListView(APIView):
                     destination=destination_instance,
                     freight_type=freight_type_instance,
                     transit_time=transit_time_instance,
-                    cargotype=commodity_instance
+                    # cargotype=commodity_instance
                 )
             except VersionedRate.DoesNotExist:
-                print(VersionedRate)
+                # print(VersionedRate)
                 return Response({"detail": "VersionedRate not found."}, status=status.HTTP_404_NOT_FOUND)
 
             # Update versioned_rate fields
+            versioned_rate_instance.cargotype = requestData.get('cargotype', versioned_rate_instance.cargotype)
             versioned_rate_instance.rate = requestData.get('rate', versioned_rate_instance.rate)
             versioned_rate_instance.free_days = int(requestData.get('free_days', versioned_rate_instance.free_days))
             versioned_rate_instance.effective_date = requestData.get('effective_date', versioned_rate_instance.effective_date)
             versioned_rate_instance.currency = requestData.get('currency', versioned_rate_instance.currency)
-            versioned_rate_instance.vessel_name=requestData.get('vessel_name', versioned_rate_instance.vessel_name),
-            versioned_rate_instance.voyage=requestData.get('voyage', versioned_rate_instance.voyage),
-            versioned_rate_instance.haz_class=requestData.get('haz_class', versioned_rate_instance.haz_class),
-            versioned_rate_instance.packing_group=requestData.get('packing_group', versioned_rate_instance.packing_group)
+            versioned_rate_instance.vessel_name = requestData.get('vessel_name', versioned_rate_instance.vessel_name)
+            versioned_rate_instance.voyage = requestData.get('voyage', versioned_rate_instance.voyage)
+            versioned_rate_instance.haz_class = requestData.get('haz_class', versioned_rate_instance.haz_class)
+            versioned_rate_instance.packing_group = requestData.get('packing_group', versioned_rate_instance.packing_group)
+            versioned_rate_instance.transhipment_add_port = requestData.get('transhipment_add_port', versioned_rate_instance.transhipment_add_port)
             versioned_rate_instance.expiration_date = requestData.get('expiration_date', versioned_rate_instance.expiration_date)
+            versioned_rate_instance.spot_filed = requestData.get('spot_filed', versioned_rate_instance.spot_filed)
+            versioned_rate_instance.isRateTypeStatus = requestData.get('isRateTypeStatus', versioned_rate_instance.isRateTypeStatus)
             versioned_rate_instance.hazardous = requestData.get('hazardous', versioned_rate_instance.hazardous)
             versioned_rate_instance.un_number = requestData.get('un_number', versioned_rate_instance.un_number)
             versioned_rate_instance.free_days_comment = requestData.get('free_days_comment', versioned_rate_instance.free_days_comment)
             versioned_rate_instance.terms_condition = requestData.get('terms_condition', versioned_rate_instance.terms_condition)
 
-            # versioned_rate_instance.isRateUsed = requestData.get('isRateUsed', versioned_rate_instance.isRateUsed)
+            versioned_rate_instance.isRateUsed = requestData.get('isRateUsed', versioned_rate_instance.isRateUsed)
             versioned_rate_instance.remarks = requestData.get('remarks', versioned_rate_instance.remarks)
             versioned_rate_instance.save()
 
@@ -1370,26 +1378,30 @@ class ManualRateListView(APIView):
                     destination=destination_instance,
                     freight_type=freight_type_instance,
                     transit_time=transit_time_instance,
-                    cargotype=commodity_instance
+                    # cargotype=commodity_instance
                 )
             except Rate.DoesNotExist:
                 return Response({"detail": "Rate not found."}, status=status.HTTP_404_NOT_FOUND)
 
+            rate_instance.cargotype = requestData.get('cargotype', rate_instance.cargotype)
             rate_instance.rate = requestData.get('rate', rate_instance.rate)
             rate_instance.free_days = int(requestData.get('free_days', rate_instance.free_days))
             rate_instance.effective_date = requestData.get('effective_date', rate_instance.effective_date)
             rate_instance.currency = requestData.get('currency', rate_instance.currency)
 
-            rate_instance.vessel_name=requestData.get('vessel_name', rate_instance.vessel_name),
-            rate_instance.voyage=requestData.get('voyage', rate_instance.voyage),
-            rate_instance.haz_class=requestData.get('haz_class', rate_instance.haz_class),
-            rate_instance.packing_group=requestData.get('packing_group', rate_instance.packing_group) 
+            rate_instance.vessel_name = requestData.get('vessel_name', rate_instance.vessel_name)
+            rate_instance.voyage = requestData.get('voyage', rate_instance.voyage)
+            rate_instance.haz_class = requestData.get('haz_class', rate_instance.haz_class)
+            rate_instance.packing_group = requestData.get('packing_group', rate_instance.packing_group) 
+            rate_instance.transhipment_add_port = requestData.get('transhipment_add_port', rate_instance.transhipment_add_port) 
              
             rate_instance.expiration_date = requestData.get('expiration_date', rate_instance.expiration_date)
+            rate_instance.spot_filed = requestData.get('spot_filed', rate_instance.spot_filed)
+            rate_instance.isRateTypeStatus = requestData.get('isRateTypeStatus', rate_instance.isRateTypeStatus)
             rate_instance.hazardous = requestData.get('hazardous', rate_instance.hazardous)
             rate_instance.un_number = requestData.get('un_number', rate_instance.un_number)
             rate_instance.free_days_comment = requestData.get('free_days_comment', rate_instance.free_days_comment)
-            # rate_instance.isRateUsed = requestData.get('isRateUsed', rate_instance.isRateUsed)
+            rate_instance.isRateUsed = requestData.get('isRateUsed', rate_instance.isRateUsed)
             rate_instance.version = versioned_rate_instance
             rate_instance.remarks = requestData.get('remarks', rate_instance.remarks)
             rate_instance.terms_condition = requestData.get('terms_condition', rate_instance.terms_condition)
@@ -1665,7 +1677,7 @@ class CustomerInfoListView(APIView):
     def post(self, request):
         try:
             requestData = request.data
-            operator_name = requestData.get('operator_name')
+            company_name = requestData.get('company_name')
             cust_name = requestData.get('cust_name')
             cust_email = requestData.get('cust_email')
             sales_represent = requestData.get('sales_represent')
@@ -1673,7 +1685,7 @@ class CustomerInfoListView(APIView):
             terms_condition = requestData.get('terms_condition')
             
             CustomerInfo.objects.create(
-            operator_name=operator_name,
+            company_name=company_name,
             cust_name=cust_name,
             cust_email=cust_email,
             sales_represent=sales_represent,

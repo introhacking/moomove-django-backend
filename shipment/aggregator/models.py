@@ -67,6 +67,7 @@ class VersionedRate(models.Model):
     spot_filed = models.CharField(max_length=15 , default='spot')
     isRateTypeStatus = models.BooleanField(blank=True, null=True , default=False)
     isRateUsed = models.BooleanField(default=False,)
+    transhipment_add_port = models.CharField(blank=True, null=True , max_length=50)
     effective_date = models.DateField()
     # cargotype = models.ForeignKey(Comodity, null=True, on_delete=models.CASCADE)
     cargotype = models.CharField(max_length=15, null=True)
@@ -101,6 +102,7 @@ class Rate(models.Model):
     spot_filed = models.CharField(max_length=15 , default='spot')
     isRateTypeStatus = models.BooleanField(blank=True, null=True , default=False)
     isRateUsed = models.BooleanField(default=False,)
+    transhipment_add_port = models.CharField(blank=True, null=True , max_length=50)
     effective_date = models.DateField()
     # cargotype = models.ForeignKey(Comodity, null=True, on_delete=models.CASCADE)
     cargotype = models.CharField(max_length=15, null=True)
@@ -117,7 +119,7 @@ class Rate(models.Model):
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
 
     class Meta:
-        unique_together = ('company', 'source', 'destination', 'transit_time', 'freight_type', 'currency' ,'spot_filed', 'terms_condition', 'free_days' , 'free_days_comment' ,  'hazardous' , 'un_number', 'effective_date', 'expiration_date' , 'soft_delete')
+        unique_together = ('company', 'source', 'destination', 'transit_time', 'freight_type', 'currency' ,'spot_filed', 'vessel_name','voyage', 'haz_class', 'packing_group', 'terms_condition', 'free_days' , 'free_days_comment' ,  'hazardous' , 'un_number', 'effective_date', 'expiration_date' , 'soft_delete')
 
     def __str__(self):
         # return f"{self.company}: {self.source} to {self.destination} - {self.transit_time} | {self.freight_type}: ${self.rate}"
@@ -158,7 +160,7 @@ class ManualRate(models.Model):
 
 
     class Meta:
-        unique_together = ('company', 'destination','source', 'direct_shipment','spot_filed',  'free_days', 'free_days_comment' ,  'hazardous' , 'un_number',  'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate', 'currency' , 'effective_date', 'expiration_date', 'remarks', 'terms_condition', 'soft_delete', 'version' )
+        unique_together = ('company', 'destination','source', 'direct_shipment','spot_filed', 'vessel_name','voyage', 'haz_class', 'packing_group', 'free_days', 'free_days_comment' , 'hazardous' , 'un_number',  'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate', 'currency' , 'effective_date', 'expiration_date', 'remarks', 'terms_condition', 'soft_delete', 'version' )
 
     def __str__(self):
          return f"{self.company} | {self.source} - {self.destination} | {self.rate} - {self.currency} - {self.cargotype} | {self.effective_date} - {self.expiration_date}"
@@ -181,7 +183,7 @@ class ManualRate(models.Model):
 #     class Meta:
 #         ordering = ['-created_at']
 class CustomerInfo(models.Model):
-    operator_name = models.CharField(max_length=60)
+    company_name = models.CharField(max_length=60)
     cust_name = models.CharField(max_length=100)
     cust_email = models.EmailField(max_length=80)
     sales_represent = models.CharField(max_length=150)
