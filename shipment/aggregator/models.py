@@ -165,8 +165,8 @@ class ManualRate(models.Model):
     remarks = models.TextField(blank=True, null=True)
     terms_condition = models.CharField(blank=True, null=True)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    # created_at = models.DateTimeField(auto_now_add=True)
+    # updated_at = models.DateTimeField(auto_now=True)
 
 
     class Meta:
