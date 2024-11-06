@@ -1,0 +1,106 @@
+CREATE OR REPLACE FUNCTION get_combined_rates_data(
+    p_source_id BIGINT,
+    p_destination_id BIGINT
+)
+RETURNS TABLE (
+    id BIGINT,
+    unique_uuid CHAR(24),
+    company_id BIGINT,
+    company_name VARCHAR,
+    rate NUMERIC,
+    currency CHAR(15),
+    free_days NUMERIC,  -- free_days is declared as NUMERIC here
+    spot_filed CHAR(15),
+    transhipment_add_port CHAR(50),
+    effective_date DATE,
+    expiration_date DATE,
+	un_number CHAR(4),
+    vessel_name CHAR(50),
+    cargotype CHAR(50),
+    voyage CHAR(50),
+    hazardous BOOL,
+    terms_condition CHAR(255),
+    source_id BIGINT,
+    source_name VARCHAR,
+    destination_id BIGINT,
+    destination_name VARCHAR,
+	transit_time_id BIGINT,
+    transit_time INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        m.id,
+        m.unique_uuid::CHAR(24),
+        m.company_id,
+	    c.name AS company_name,
+        m.rate,
+        m.currency::CHAR(15),
+        m.free_days::NUMERIC,
+        m.spot_filed::CHAR(15),
+        m.transhipment_add_port::CHAR(50),
+        m.effective_date::DATE,
+        m.expiration_date::DATE,
+        m.un_number::CHAR(4),
+        m.vessel_name::CHAR(50),
+        m.cargotype::CHAR(50),
+        m.voyage::CHAR(50),
+	    m.hazardous::BOOL,
+        m.terms_condition::CHAR(255),
+        m.source_id,
+        s.name AS source_name,
+        m.destination_id,
+        d.name AS destination_name,
+	    m.transit_time_id,
+        CAST(floor(t.time::NUMERIC) AS INTEGER) AS transit_time
+   FROM 
+        public.aggregator_manualrate m
+    JOIN public.aggregator_company c ON c.id = m.company_id
+    JOIN public.aggregator_source s ON s.id = m.source_id
+    JOIN public.aggregator_destination d ON d.id = m.destination_id
+    JOIN public.aggregator_transittime t ON t.id = m.transit_time_id
+    WHERE 
+        m.source_id = p_source_id 
+        AND m.destination_id = p_destination_id
+        AND m.soft_delete = FALSE
+
+    UNION ALL
+    
+    SELECT 
+        r.id,
+        r.unique_uuid::CHAR(24),
+        r.company_id,
+        c.name AS company_name,
+	    r.rate::NUMERIC(5, 1),
+        r.currency::CHAR(15),
+        r.free_days::NUMERIC,
+        r.spot_filed::CHAR(15),
+        r.transhipment_add_port::CHAR(50),
+        r.effective_date::DATE,
+	    r.expiration_date::DATE,
+        r.un_number::CHAR(4),
+        r.vessel_name::CHAR(50),
+	    r.cargotype::CHAR(50),
+        r.voyage::CHAR(50),
+	    r.hazardous::BOOL,
+        r.terms_condition::CHAR(255),
+        r.source_id,
+        s.name AS source_name,
+        r.destination_id,
+        d.name AS destination_name,
+	    r.transit_time_id,
+        CAST(floor(t.time::NUMERIC) AS INTEGER) AS transit_time
+    FROM 
+        public.aggregator_rate r
+    JOIN public.aggregator_company c ON c.id = r.company_id
+    JOIN public.aggregator_source s ON s.id = r.source_id
+    JOIN public.aggregator_destination d ON d.id = r.destination_id
+	JOIN public.aggregator_transittime t ON t.id = r.transit_time_id
+    WHERE 
+        r.source_id = p_source_id 
+        AND r.destination_id = p_destination_id
+        AND r.soft_delete = FALSE;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM get_combined_rates_data(7, 7);
