@@ -116,7 +116,8 @@ class ImportExcelData(APIView):
         if not company_id:
             return Response({"error": "Company ID is required"}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            company = Company.objects.get(id=company_id)
+            # company = Company.objects.get(id=company_id)  # by manish
+            company = ClientTemplateCompany.objects.get(id=company_id)
 
             required_columns = ["Origin Port", "Destination Port", "Transit\ntime", "20'GP", "40'HC", "Effective Date", "Expiration Date"]
             sheets_to_read = ['F.E', 'E.Africa', 'Gulf-Red Sea']  # Adjust sheet names as per your Excel file
@@ -353,7 +354,8 @@ class ExtractWordTableView(APIView):
             for ft in freight_types:
                 rate_value = item.get(ft)
                 if rate_value is not None:
-                    company = get_object_or_404(Company, id=company_id)
+                    # company = get_object_or_404(Company, id=company_id) # by manish
+                    company = get_object_or_404(ClientTemplateCompany, id=company_id)
 
                     freight_type, _ = FreightType.objects.get_or_create(type=ft)
 
@@ -596,7 +598,8 @@ class ExtractPDFTableView(APIView):
             company_id = request.data.get('company_id')  # Adjust this based on how company_id is passed
 
             # Retrieve company instance based on company_id
-            company = Company.objects.get(id=company_id)  # Assuming Company model and id field exist
+            # company = Company.objects.get(id=company_id)  # Assuming Company model and id field exist   # by manish
+            company = ClientTemplateCompany.objects.get(id=company_id)  # Assuming Company model and id field exist
 
             pdf_file = request.FILES['file']
             content = pdf_file.read()
@@ -873,6 +876,22 @@ class CompanyListAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
+class ClientTemplateCompanyAPIView(APIView):
+    permission_classes=[IsAuthenticated]
+
+    def get(self, request):
+        companies = ClientTemplateCompany.objects.filter(soft_delete=False)
+        serializer = ClientTemplateCompanySerializer(companies, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = ClientTemplateCompanySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 class SourceListAPIView(APIView):
     permission_classes=[IsAuthenticated]
 
@@ -939,9 +958,11 @@ class RateListView(generics.ListAPIView):
             rows = cursor.fetchall()
 
             columns = [
-                'id', 'unique_uuid','company_id', 'company_name', 'rate', 'currency',
+                'id', 'unique_uuid', 'company_id', 'company_name', 'rate', 'currency',
                 'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
-                'expiration_date', 'un_number' ,'vessel_name', 'cargotype', 'voyage', 'hazardous', 'terms_condition', 'source_id', 'source_name', 'destination_id', 'destination_name','transit_time_id','transit_time','freight_type_id','freight_type'
+                'expiration_date', 'un_number' ,'vessel_name', 'cargotype', 'voyage', 'hazardous', 'terms_condition', 'source_id', 'source_name', 'destination_id', 
+                'destination_name','transit_time_id','transit_time','freight_type_id','freight_type',
+                # 'client_template_id', 'client_template_name',
             ]
             data = [dict(zip(columns, row)) for row in rows]
             return data  # Return as list of dictionaries for serialization
@@ -993,7 +1014,7 @@ class ManualRateWithRateWithVersionsAPIView(APIView):
     permission_classes=[IsAuthenticated]
 
     def get(self, request, company_id):
-        # print("company_id: ", company_id)
+        # print("clienttemplatecompany_id: ", clienttemplatecompany_id)
         try:
             manual_rates = ManualRate.objects.filter(company_id=company_id,soft_delete=False)
             manual_rates_serializer = ManualRateSerializer(manual_rates, many=True)
@@ -1037,6 +1058,7 @@ class ManualRateListView(APIView):
                     return Response({"message": required_fields }, status=status.HTTP_400_BAD_REQUEST)
 
                 # Create or retrieve the instances
+                # company_instance, _ = Company.objects.get_or_create(name=company_name)
                 company_instance, _ = Company.objects.get_or_create(name=company_name)
                 # company_instance, _ = ManualShippingList.objects.get_or_create(name=company_name)
                 source_instance, _ = Source.objects.get_or_create(name=source_name)

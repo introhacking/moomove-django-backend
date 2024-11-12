@@ -9,6 +9,11 @@ class CompanySerializer(serializers.ModelSerializer):
         # extra_kwargs = {
         #     'logo': {'required': False}  # Make logo optional in the serializer
         # }
+class ClientTemplateCompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClientTemplateCompany
+        fields = ['id' , 'name']
+
 
 class SourceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -55,6 +60,8 @@ class RateSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+    # client_template_id = serializers.IntegerField()
+    # client_template_name = serializers.CharField()
 class RateSerializer1(serializers.Serializer):  # Change to `serializers.Serializer` for custom fields
     id = serializers.IntegerField()
     unique_uuid = serializers.UUIDField()
@@ -84,12 +91,13 @@ class RateSerializer1(serializers.Serializer):  # Change to `serializers.Seriali
 
     class Meta:
         fields = [
-           'id', 'unique_uuid', 'company_id', 'company_name', 'rate', 'currency',
+           'id', 'unique_uuid','company_id', 'company_name', 'rate', 'currency',
             'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
             'expiration_date', 'un_number', 'vessel_name', 'cargotype', 'voyage', 
             'hazardous', 'terms_condition', 'source_id', 'source_name', 'destination_id', 
-            'destination_name', 'transit_time_id', 'transit_time','freight_type_id','freight_type'
+            'destination_name', 'transit_time_id', 'transit_time','freight_type_id','freight_type', 
         ]
+    # 'client_template_id','client_template_name'
 
         
 # class RateSerializer1(serializers.ModelSerializer):
@@ -120,6 +128,7 @@ class RateSerializer1(serializers.Serializer):  # Change to `serializers.Seriali
 class ManualRateSerializer(serializers.ModelSerializer):
    
     company = CompanySerializer()
+    # client_template_company = ClientTemplateCompanySerializer()
     source = SourceSerializer()
     destination = DestinationSerializer()
     transit_time = TransitTimeSerializer()

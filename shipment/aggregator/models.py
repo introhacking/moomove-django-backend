@@ -1,5 +1,5 @@
 from django.db import models
-import uuid
+# import uuid
 
 from django.utils import timezone    # new for search history
 from datetime import timedelta       # new for search history
@@ -42,6 +42,16 @@ class Company(models.Model):
 
     def __str__(self):
         return self.name
+    
+# CLIENT TEMPLATE 
+class ClientTemplateCompany(models.Model):
+    unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
+    soft_delete = models.BooleanField(blank=True, null=True , default=False)
+    name = models.CharField(max_length=255)
+    def __str__(self):
+        return self.name
+
+
 
 class Comodity(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -55,7 +65,7 @@ class IncoTerm(models.Model):
 
 class VersionedRate(models.Model):
     unique_uuid = models.CharField(max_length=24, unique=True, null=True, editable=False)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    company = models.ForeignKey(ClientTemplateCompany, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
     transit_time = models.ForeignKey(TransitTime, on_delete=models.CASCADE)
@@ -89,7 +99,7 @@ class VersionedRate(models.Model):
 
 class Rate(models.Model):
     unique_uuid = models.CharField(max_length=24, unique=True, null=True, editable=False)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    company = models.ForeignKey(ClientTemplateCompany, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
     transit_time = models.ForeignKey(TransitTime, on_delete=models.CASCADE)
@@ -123,23 +133,12 @@ class Rate(models.Model):
         # return f"{self.company}: {self.source} to {self.destination} - {self.transit_time} | {self.freight_type}: ${self.rate}"
         return f"{self.source} - {self.company}"
 
-
-
-
-# class ManualShippingList(models.Model):
-#     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
-#     name = models.CharField(max_length=255)
-#     soft_delete = models.BooleanField(blank=True, null=True , default=False)
-
-#     def __str__(self):
-#         return self.name
-    
     
 # MANUAL RATE 
 class ManualRate(models.Model):
     # logo = models.ImageField(upload_to='company_logos/', max_length=255, blank=True, null=True)
     unique_uuid = models.CharField(max_length=24, unique=True, editable=False)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, default=1)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     freight_type = models.ForeignKey(FreightType, on_delete=models.CASCADE)

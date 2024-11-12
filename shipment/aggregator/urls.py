@@ -13,6 +13,7 @@ urlpatterns = [
     path('extract-pdf-table/', ExtractPDFTableView.as_view(), name='extract-pdf-table'),
     path('extract-word-table/', ExtractWordTableView.as_view(), name='extract_word_table'),
     path('companies/', CompanyListAPIView.as_view(), name='company-list'),
+    path('client-template/', ClientTemplateCompanyAPIView.as_view(), name='client-template-company-list'),
     path('source/', SourceListAPIView.as_view(), name='source-list'),
     path('destination/', DestinaltionListAPIView.as_view(), name='destination-list'),
     path('frighttype/', FrightTypeListAPIView.as_view(), name='fright-type-list'),

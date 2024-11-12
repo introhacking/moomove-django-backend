@@ -104,3 +104,52 @@ END;
 $$ LANGUAGE plpgsql;
 
 SELECT * FROM get_combined_rates_data(7, 7);
+
+
+
+
+
+##########################################  GENERATING UUID FOR SPECIFIC RATE #############################################
+
+CREATE OR REPLACE FUNCTION generate_unique_uuid(input_id INT, input_rate NUMERIC)
+RETURNS VARCHAR(24) AS $$
+DECLARE
+    result_uuid VARCHAR(24);
+BEGIN
+    -- Generate a unique 24-character string (this example uses substring of UUID)
+    result_uuid := SUBSTRING(REPLACE(gen_random_uuid()::TEXT, '-', ''), 1, 24);
+    RETURN result_uuid;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+DO $$
+DECLARE
+    generated_uuid VARCHAR(24);
+BEGIN
+    -- Generate the unique UUID
+    generated_uuid := generate_unique_uuid(246, '4582.00');
+
+    -- Uncomment the following lines if you wish to update the table
+    UPDATE public.aggregator_manualrate
+    SET unique_uuid = generated_uuid
+    WHERE id = 246 AND rate = '4582.00';
+
+    -- For debugging, you can raise a notice
+    -- RAISE NOTICE 'Generated UUID: %', generated_uuid;
+END $$;
+
+
+
+**************************************************  TO CREATE TABLE CLIENT_TEMPLATE_COMPANY  ************************************ 
+
+-- CREATE TABLE public.aggregator_clienttemplatecompany (
+--     id SERIAL PRIMARY KEY,
+-- 	unique_uuid varchar(24),
+--     name VARCHAR(255) NOT NULL,
+-- 	soft_delete bool
+-- );
+-- insert into public.aggregator_clienttemplatecompany (id,unique_uuid,name,soft_delete) values (1, null,'EMIRATES',false);
+-- insert into public.aggregator_clienttemplatecompany (id,unique_uuid,name,soft_delete) values (2, null,'INTERSIA',false);
+-- insert into public.aggregator_clienttemplatecompany (id,unique_uuid,name,soft_delete) values (3, null,'COSCO',false);
