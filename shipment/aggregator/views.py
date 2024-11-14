@@ -1051,9 +1051,10 @@ class ManualRateListView(APIView):
                 freight_type = requestData.get('freight_type')
                 transit_time = requestData.get('transit_time')
                 commodity_name = requestData.get('cargotype')
+                manualrate = requestData.get('rate')
 
                 # Ensure required fields are provided
-                required_fields = [company_name, source_name, destination_name, freight_type, transit_time]
+                required_fields = [company_name, source_name, destination_name, freight_type, transit_time,manualrate]
                 if not all(required_fields):
                     return Response({"message": required_fields }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1075,6 +1076,7 @@ class ManualRateListView(APIView):
                     'freight_type': freight_type_instance,
                     'transit_time': transit_time_instance,
                     'cargotype': commodity_name_instance,
+                    'rate': manualrate,
                     'soft_delete': False  # Exclude soft-deleted records
                 }
 
@@ -1130,7 +1132,7 @@ class ManualRateListView(APIView):
                     freight_type=freight_type_instance,
                     transit_time=transit_time_instance,
                     cargotype=commodity_name_instance,
-                    rate=requestData.get('rate'),
+                    rate=manualrate,
                     free_days=requestData.get('free_days'),
                     free_days_comment=requestData.get('free_days_comment'),
                     currency=requestData.get('currency'),

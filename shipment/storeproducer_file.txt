@@ -141,6 +141,48 @@ BEGIN
 END $$;
 
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  STORE PROCEDUCER TO UPDATE MULTIPLE ID WITH DIFFERENT RATE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+-- UUID Generation Function
+-- CREATE OR REPLACE FUNCTION generate_unique_uuid_with_multiple_id()
+-- RETURNS VARCHAR(24) AS $$
+-- DECLARE
+--     result_uuid VARCHAR(24);
+-- BEGIN
+--     -- Generate a unique 24-character string (using a substring of UUID)
+--     result_uuid := SUBSTRING(REPLACE(gen_random_uuid()::TEXT, '-', ''), 1, 24);
+--     RETURN result_uuid;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+
+
+-- Main DO Block to Update Multiple IDs with the Same Rate but Unique UUIDs
+DO $$
+DECLARE
+    generated_uuid VARCHAR(24);
+    target_rate  NUMERIC := 4300.00;  -- Define the rate to be applied
+    id_list INTEGER[] := ARRAY[203];  -- List of IDs to update
+BEGIN
+    -- Loop through each ID in the id_list
+    FOR i IN 1..array_length(id_list, 1) LOOP
+        -- Generate a unique UUID for each ID with the same rate
+        generated_uuid := generate_unique_uuid_with_multiple_id();
+        -- Update the aggregator_manualrate table with the generated UUID for each ID
+        UPDATE public.aggregator_manualrate
+        SET unique_uuid = generated_uuid
+        WHERE id = id_list[i] AND rate = target_rate ;
+        -- Optional: RAISE NOTICE for debugging
+        -- RAISE NOTICE 'Generated UUID for ID % with rate %: %', id_list[i], target_rate , generated_uuid;
+    END LOOP;
+END $$;
+SELECT rate, id, COUNT(*) AS rate_count
+FROM public.aggregator_manualrate
+WHERE unique_uuid IS NULL
+GROUP BY rate , id
+HAVING COUNT(*) > 1 ;
+
 
 **************************************************  TO CREATE TABLE CLIENT_TEMPLATE_COMPANY  ************************************ 
 
