@@ -1,8 +1,12 @@
 from django.db import models
+# from sqlalchemy import DateTime
+
 # import uuid
 
 from django.utils import timezone    # new for search history
-from datetime import timedelta       # new for search history
+# from datetime import timedelta       # new for search history
+from datetime import datetime
+
 
 class Source(models.Model):
     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False) 
@@ -198,13 +202,14 @@ class CustomerInfo(models.Model):
     cust_email = models.EmailField(max_length=80)
     sales_represent = models.CharField(max_length=150)
     phone = models.CharField(max_length=20)
+    percentage = models.DecimalField(default=0, max_digits=10, decimal_places=2)
     terms_condition = models.CharField(max_length=256, default='Terms & Condition')
 
     class Meta:
-        unique_together = ('cust_name', 'cust_email', 'sales_represent','phone', 'terms_condition')
+        unique_together = ('company_name','cust_name', 'cust_email', 'sales_represent','phone', 'percentage', 'terms_condition')
 
     def __str__(self):
-        return f"{self.operator_name} | {self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
+        return f"{self.company_name} | {self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
      
 class Registration(models.Model):
     name = models.CharField(max_length=50)
@@ -218,3 +223,17 @@ class Registration(models.Model):
 
     def __str__(self):
         return f"{self.name} | {self.email} | {self.username} | {self.phone}"    
+    
+
+# ACTIVITY LOG 
+class ActivityLog(models.Model):
+    userId = models.IntegerField()
+    action_type = models.CharField(max_length=150)
+    action_status = models.BooleanField(null=True)
+    source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, blank=True)
+    destination = models.ForeignKey(Destination, on_delete=models.CASCADE, null=True, blank=True)
+    description = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Action of Log | {self.userId} | {self.action_status} | {self.action_type} on {self.created_at}"

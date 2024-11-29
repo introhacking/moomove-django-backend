@@ -27,6 +27,9 @@ urlpatterns = [
     path('frozen-rate/<str:unique_uuid>/', UpadatingRateFrozenInfoListView.as_view(), name='update_rate_frozen'),
     path('manual-rate/delete/<str:unique_uuid>/', ManualRateListView.as_view(), name='delete_manual_rate'),
     path('customer/', CustomerInfoListView.as_view(), name='create_customer'),
+    path('customer-id/<int:id>/', CutomerInfoDetailsListView.as_view(), name='get_customer_info'),
+    path('update-customer/<int:id>/', CustomerInfoListView.as_view(), name='update_customer_info'),
     path('registration/', RegistrationInfoListView.as_view(), name='registration'),
+    path('activity-log/', ActivityLogView.as_view(), name='activityLog'),
 
 ]

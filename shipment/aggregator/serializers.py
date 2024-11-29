@@ -156,14 +156,12 @@ class ManualRateSerializer(serializers.ModelSerializer):
 
 
 class CustomerInfoSerializer(serializers.ModelSerializer):
-    # print('CustomerInfo Serializer Initialized')
     class Meta:
         model = CustomerInfo
         fields = '__all__'
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
-    # print('CustomerInfo Serializer Initialized')
     class Meta:
         model = Registration,
         fields = '__all__'
@@ -201,3 +199,11 @@ class LogoutSerializer(serializers.Serializer):
             return {"status":True}
         except Exception as e:
             return {"error":str(e)}
+
+# ACTIVITY SERIALIZER
+class ActivityLogSerializer(serializers.Serializer):
+    source = SourceSerializer()
+    destination = DestinationSerializer()
+    class Meta:
+        model = ActivityLog,
+        fields = '__all__' 
