@@ -93,7 +93,7 @@ CORS_ALLOWED_ORIGINS = [
     # 'http://35.154.191.16:8000', # PRODUCTION
     # 'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com/'    # PRODUCTION FOR AWS 
 
-    f'http://{config["HOST_URL"]}',    # TEST FOR AWS 
+    f'{config["HOST_URL"]}',    # TEST FOR AWS 
     f'http://{config["HOST_IP"]}',    # TEST
     
 ] 
