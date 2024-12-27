@@ -1,6 +1,17 @@
 from rest_framework import serializers
 from .models import *
 from django.contrib.auth.models import User
+from dotenv import load_dotenv,dotenv_values
+
+
+config={
+    **dotenv_values('constant_env/.env.shared'),
+    **dotenv_values('constant_env/.env.secret'),
+    **dotenv_values('constant_env/.env.error'),
+    # **os.environ
+}
+
+# print([config["RATE_LIST_QUERYSET"]])
 
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,11 +20,11 @@ class CompanySerializer(serializers.ModelSerializer):
         # extra_kwargs = {
         #     'logo': {'required': False}  # Make logo optional in the serializer
         # }
+
 class ClientTemplateCompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = ClientTemplateCompany
         fields = ['id' , 'name']
-
 
 class SourceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,6 +73,7 @@ class RateSerializer(serializers.ModelSerializer):
 
     # client_template_id = serializers.IntegerField()
     # client_template_name = serializers.CharField()
+
 class RateSerializer1(serializers.Serializer):  # Change to `serializers.Serializer` for custom fields
     id = serializers.IntegerField()
     unique_uuid = serializers.UUIDField()
@@ -90,13 +102,14 @@ class RateSerializer1(serializers.Serializer):  # Change to `serializers.Seriali
     freight_type = serializers.CharField()
 
     class Meta:
-        fields = [
-           'id', 'unique_uuid','company_id', 'company_name', 'rate', 'currency',
-            'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
-            'expiration_date', 'un_number', 'vessel_name', 'cargotype', 'voyage', 
-            'hazardous', 'terms_condition', 'source_id', 'source_name', 'destination_id', 
-            'destination_name', 'transit_time_id', 'transit_time','freight_type_id','freight_type', 
-        ]
+          field=[config["RATE_LIST_QUERYSET"]]
+        # fields = [
+        #    'id', 'unique_uuid','company_id', 'company_name', 'rate', 'currency',
+        #     'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
+        #     'expiration_date', 'un_number', 'vessel_name', 'cargotype', 'voyage', 
+        #     'hazardous', 'terms_condition', 'source_id', 'source_name', 'destination_id', 
+        #     'destination_name', 'transit_time_id', 'transit_time','freight_type_id','freight_type', 
+        # ]
     # 'client_template_id','client_template_name'
 
         
@@ -160,12 +173,10 @@ class CustomerInfoSerializer(serializers.ModelSerializer):
         model = CustomerInfo
         fields = '__all__'
 
-
 class RegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Registration,
         fields = '__all__'
-
 
 class CommoditySerializer(serializers.ModelSerializer):
     class Meta:
@@ -177,28 +188,31 @@ class IncoTermSerializer(serializers.ModelSerializer):
         model = IncoTerm
         fields = ['id', 'rule']
 
-class UserSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField(write_only=True)
+
+# class UserSerializer(serializers.Serializer):
+#     username = serializers.CharField()
+#     password = serializers.CharField(write_only=True)
 
 
-class LogoutSerializer(serializers.Serializer):
-    refresh_token=serializers.CharField()
-    default_error_messages={}
-    def validate(self, attrs):
-        self.token=attrs['refresh_token']
-        return attrs
 
-    def save(self, **kwargs):
+# class LogoutSerializer(serializers.Serializer):
+#     refresh_token=serializers.CharField()
+#     default_error_messages={}
+#     def validate(self, attrs):
+#         self.token=attrs['refresh_token']
+#         return attrs
 
-        try:
-            # message = self.token
-            # message_bytes = message.encode('ascii')
-            # base64_bytes = base64.b64encode(message_bytes)
-            # RefreshToken(base64_bytes).blacklist()
-            return {"status":True}
-        except Exception as e:
-            return {"error":str(e)}
+#     def save(self, **kwargs):
+
+#         try:
+#             # message = self.token
+#             # message_bytes = message.encode('ascii')
+#             # base64_bytes = base64.b64encode(message_bytes)
+#             # RefreshToken(base64_bytes).blacklist()
+#             return {"status":True}
+#         except Exception as e:
+#             return {"error":str(e)}
+
 
 # ACTIVITY SERIALIZER
 class ActivityLogSerializer(serializers.Serializer):
@@ -207,3 +221,62 @@ class ActivityLogSerializer(serializers.Serializer):
     class Meta:
         model = ActivityLog,
         fields = '__all__' 
+
+
+# ROLE SERIALIZER
+# class RegisterSerializer(serializers.ModelSerializer):
+#     role = serializers.CharField(write_only=True)  # Accept role as a string (name)
+
+#     class Meta:
+#         model = User
+#         fields = ['username', 'email', 'password', 'role']
+
+#     def validate_role(self, value):
+#         """Validate that the role exists and return the role instance."""
+#         try:
+#             role = Role.objects.get(name=value)
+#             return role
+#         except Role.DoesNotExist:
+#             raise serializers.ValidationError(f"Role '{value}' does not exist.")
+        
+
+#     def create(self, validated_data):
+#         role = validated_data.pop('role')  # This is the validated Role object
+#         password = validated_data.pop('password')
+        
+#         user = User(**validated_data)
+#         user.set_password(password)
+#         user.role = role
+        
+#         # Set is_staff to True for admin roles
+#         if role.name in ["System Administrator", "Client Administrator"]:
+#             user.is_staff = True
+        
+#         user.save()
+#         return user
+
+
+
+
+
+
+    # def create(self, validated_data):
+    #     role = validated_data.pop('role')  # This is the validated Role object
+    #     password = validated_data.pop('password')
+        
+    #     user = User(**validated_data)
+    #     user.set_password(password)
+    #     user.role = role
+    #     user.save()
+    #     return user
+#     class Meta:
+#         model = User
+#         fields = ['username', 'email', 'password']
+
+#     def create(self, validated_data):
+#         user = User.objects.create_user(
+#             username=validated_data['username'],
+#             email=validated_data['email'],
+#             password=validated_data['password']
+#         )
+#         return user

@@ -1,5 +1,7 @@
 from django.db import models
 # from sqlalchemy import DateTime
+from django.contrib.auth.models import AbstractUser
+
 
 # import uuid
 
@@ -237,3 +239,4 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"Action of Log | {self.userId} | {self.action_status} | {self.action_type} on {self.created_at}"
+    

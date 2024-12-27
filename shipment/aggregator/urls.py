@@ -6,8 +6,8 @@ from django.urls import path, include
 
 urlpatterns = [
 
-    path('login/', login, name='login'),
-    path('logout/', UserLogoutView.as_view(), name='logout'),
+    # path('login/', login, name='login'),
+    # path('logout/', UserLogoutView.as_view(), name='logout'),
     path('import-excel/', ImportExcelData.as_view(), name='import-excel'),
     path('company-rates/<company_id>/', RateWithVersionsAPIView.as_view(), name='company-rates'),
     path('extract-pdf-table/', ExtractPDFTableView.as_view(), name='extract-pdf-table'),

@@ -13,6 +13,17 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+from dotenv import load_dotenv,dotenv_values
+
+config={
+    **dotenv_values('constant_env/.env.shared'),
+    **dotenv_values('constant_env/.env.secret'),
+    # **os.environ
+}
+
+# Test retrieval with os.getenv
+# print("HOST NAME : "+ config['HOST'])
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,6 +38,8 @@ SECRET_KEY = 'django-insecure-*xn$u(lg+-z1u_uld9chorb)qgy3^vp-quu38e0*&%ff(83hie
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
+
+AUTH_USER_MODEL='uauth.User'
 
 
 # Application definition
@@ -44,6 +57,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'aggregator',
+    'rest_framework.authtoken',
+    'uauth'
 ]
 
 MIDDLEWARE = [
@@ -59,6 +74,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    # Downloaded Middleware
+    'uauth.middleware.AuditMiddleware',
 ]
 
 REST_FRAMEWORK = {
@@ -70,13 +88,14 @@ REST_FRAMEWORK = {
 #    'PAGE_SIZE': 10,    
 }
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:4200',  # Adjust to match your frontend URL
+    f'http://{config["FRONTEND_HOST"]}:4200',  # Adjust to match your frontend URL
     # Add other allowed origins as needed
-    # 'http://35.154.191.16:8000',
-    # 'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com/'    # FOR AWS 
+    # 'http://35.154.191.16:8000', # PRODUCTION
+    # 'http://moomove-ui-deploy.s3-website.ap-south-1.amazonaws.com/'    # PRODUCTION FOR AWS 
 
-    'http://testmoomoveui.s3-website.ap-south-1.amazonaws.com'    # TEST FOR AWS 
-    'http://13.234.231.216:8000',    # TEST
+    f'http://{config["HOST"]}/'    # TEST FOR AWS 
+    f'http://{config["HOST_IP"]}',    # TEST
+    
 ] 
 
 SIMPLE_JWT = {
@@ -129,15 +148,16 @@ WSGI_APPLICATION = 'shipment.wsgi.application'
 
 
 # LOCAL DATABASE CONNECTION HERE
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'moomovedb',
-#         'USER': 'postgres',
-#         'PASSWORD': 'pushparaj',
-#         'HOST': 'localhost'
-#     }
-# }
+
+DATABASES = {
+    'default': {
+        'ENGINE': config['ENGINE'],
+        'NAME': config['DATABASE_NAME'],
+        'USER': config['DATABASE_USERNAME'],
+        'PASSWORD': config['DATABASE_PASSWORD'],
+        'HOST': config['HOST'],
+    }
+}
 
 # CLOUD(AWS) DATABASE CONNECTION HERE
 
@@ -145,7 +165,10 @@ WSGI_APPLICATION = 'shipment.wsgi.application'
 # pwd: Moomove123
 # user: moomove
 
-# PRODUCTION DATABASE CONFIG DETAILS
+#  NEW DATABASE CONFIG DETAILS
+# endpoint: moomovedb.cncigou2sueo.ap-south-1.rds.amazonaws.com
+# pwd: pushparaj
+# user: pushparaj
 
 # DATABASES = {
 #     'default': {
@@ -160,16 +183,16 @@ WSGI_APPLICATION = 'shipment.wsgi.application'
 
 # TEST DATABASE CONFIG DETAILS
 
-DATABASES = {
-     'default': {
-         'ENGINE': 'django.db.backends.postgresql',
-         'NAME': 'testdbbymanish',
-         'USER': 'testdbbymanish',
-         'PASSWORD': 'testdbbymanish',
-         'HOST': 'testdbbymanish.cncigou2sueo.ap-south-1.rds.amazonaws.com',
-         'PORT': '5432',
-     }
-}
+# DATABASES = {
+#      'default': {
+#          'ENGINE': 'django.db.backends.postgresql',
+#          'NAME': 'testdbbymanish',
+#          'USER': 'testdbbymanish',
+#          'PASSWORD': 'testdbbymanish',
+#          'HOST': 'testdbbymanish.cncigou2sueo.ap-south-1.rds.amazonaws.com',
+#          'PORT': '5432',
+#      }
+# }
 
 
 # Password validation
@@ -219,3 +242,23 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# AUTHENTICATION_BACKENDS = [
+#     'django.contrib.auth.backends.ModelBackend',
+#     'allauth.account.auth_backends.AuthenticationBackend',
+# ]
+# SOCIALACCOUNT_PROVIDERS = {
+#     'google': {
+#         'SCOPE': [
+#             'profile',
+#             'email',
+#         ],
+#         'AUTH_PARAMS': {
+#             'access_type': 'online',
+#         },
+#     }
+# }
+
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '<Your-Client-ID>'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '<Your-Client-Secret>'

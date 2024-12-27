@@ -13,7 +13,7 @@ from django.http import JsonResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 import re
-import fitz
+# import fitz
 from django.db import transaction
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from docx import Document
@@ -25,6 +25,7 @@ from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
 from drf_yasg import openapi
 
+from rest_framework.permissions import AllowAny
 from drf_spectacular.utils import extend_schema
 from drf_yasg.utils import swagger_auto_schema
 from google.oauth2 import service_account
@@ -32,7 +33,27 @@ from google.cloud import documentai_v1beta3 as documentai
 from django.db import connection
 from decimal import Decimal
 import uuid
+from dotenv import load_dotenv, dotenv_values
+from rest_framework.authtoken.models import Token
 
+# from .permissions import IsSystemAdmin, IsClientAdmin, IsClientUser
+from rest_framework.exceptions import ValidationError
+from uauth.serializers import *
+from uauth.models import *
+from uauth.views import *
+from uauth.role_permission import *
+from datetime import datetime, timedelta
+from django.db.models import Q
+
+config={
+    **dotenv_values('constant_env/.env.shared'),
+    **dotenv_values('constant_env/.env.secret'),
+    **dotenv_values('constant_env/.env.error'),
+}
+
+# required_columns = [item.strip() for item in config.get("REQUIRED_COLUMN", '').split(",")]
+# print(required_columns)
+# print(config.get("REQUIRED_COLUMN" , "").split(","))
 @extend_schema(
     request=UserSerializer,
     responses={200: 'application/json'},
@@ -40,6 +61,49 @@ import uuid
     summary="Login to get JWT token",
     description="Provide username and password to receive JWT access and refresh tokens."
 )
+
+
+# ROLE VIEWS
+# class RegisterView(APIView):
+#     permission_classes = [AllowAny]
+
+#     def post(self, request):
+#         serializer = RegisterSerializer(data=request.data)
+#         if serializer.is_valid():
+#             user = serializer.save()
+
+#             # Generate a token for the user (optional if you're using Token Authentication)
+#             from rest_framework.authtoken.models import Token
+#             token = Token.objects.create(user=user)
+
+#             return Response({
+#                 "message": "User registered successfully",
+#                 "token": token.key
+#             })
+        
+#         return Response(serializer.errors, status=400)
+
+
+# class AdminDashboardView(APIView):
+#     permission_classes = [IsSystemAdmin]
+
+#     def get(self, request):
+#         return Response({"message": config['SYSTEM_MESSAGE']})
+
+# class ClientDashboardView(APIView):
+#     permission_classes = [IsClientAdmin]
+
+#     def get(self, request):
+#         return Response({"message": config['CLIENT_MESSAGE']})
+
+# class GenerateQuoteView(APIView):
+#     permission_classes = [IsClientUser]
+
+#     def post(self, request):
+#         return Response({"message": "Quote generated successfully!"})
+
+
+
 # @api_view(['POST' , 'GET'])
 # def login(request):
 #     serializer = UserSerializer(data=request.data)
@@ -56,29 +120,32 @@ import uuid
 #         else:
 #             return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-@api_view(['POST'])
-def login(request):
-    if request.method == 'POST':
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
-            user = authenticate(request, username=username, password=password)
-            if user is not None:
-                refresh = RefreshToken.for_user(user)
+
+# working below 
+
+# @api_view(['POST'])
+# def login(request):
+#     if request.method == 'POST':
+#         serializer = UserSerializer(data=request.data)
+#         if serializer.is_valid():
+#             username = serializer.validated_data['username']
+#             password = serializer.validated_data['password']
+#             user = authenticate(request, username=username, password=password)
+#             if user is not None:
+#                 refresh = RefreshToken.for_user(user)
                 
-                # Construct the response with username, email, and name (first_name + last_name)
-                return Response({
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                    'userId': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    # 'name': f"{user.first_name} {user.last_name}".strip(),  # Combine first and last name
-                }, status=status.HTTP_200_OK)
-            else:
-                return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#                 # Construct the response with username, email, and name (first_name + last_name)
+#                 return Response({
+#                     'refresh': str(refresh),
+#                     'access': str(refresh.access_token),
+#                     'userId': user.id,
+#                     'username': user.username,
+#                     'email': user.email,
+#                     # 'name': f"{user.first_name} {user.last_name}".strip(),  # Combine first and last name
+#                 }, status=status.HTTP_200_OK)
+#             else:
+#                 return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     # # Handle GET request to fetch superuser details
     # if request.method == 'GET':
@@ -91,37 +158,48 @@ def login(request):
     #     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class UserLogoutView(generics.GenericAPIView):
-    serializer_class=LogoutSerializer
-    permission_classes = [IsAuthenticated]
-    def post(self,request,format=None):
-        serializer=self.serializer_class(data=request.data)
-        # https://github.com/jazzband/djangorestframework-simplejwt/issues/218
-        serializer.is_valid(raise_exception=True)
-        # message = serializer.data['refresh_token']
-        # message_bytes = message.encode('ascii')
-        # base64_bytes = base64.b64encode(message_bytes)
-        RefreshToken(serializer.data['refresh_token']).blacklist()
 
-        return Response({"status":True},status=status.HTTP_200_OK)
+# working below 
+
+# class UserLogoutView(generics.GenericAPIView):
+#     serializer_class=LogoutSerializer
+#     permission_classes = [IsAuthenticated]
+#     def post(self,request,format=None):
+#         serializer=self.serializer_class(data=request.data)
+#         # https://github.com/jazzband/djangorestframework-simplejwt/issues/218
+#         serializer.is_valid(raise_exception=True)
+#         # message = serializer.data['refresh_token']
+#         # message_bytes = message.encode('ascii')
+#         # base64_bytes = base64.b64encode(message_bytes)
+#         RefreshToken(serializer.data['refresh_token']).blacklist()
+
+#         return Response({"status":True},status=status.HTTP_200_OK)
+
+
 
 class ImportExcelData(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsSystemOrClientAdmin|IsClientUserEditAndRead]
+    # permission_classes=[IsAuthenticated]
 
     def post(self, request, format=None):
         file_obj = request.FILES.get('file')  # Assuming file is sent in the request
         if not file_obj:
-            return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": config['ERROR_UPLOADING']}, status=status.HTTP_400_BAD_REQUEST)
 
         company_id = request.data.get('company_id')
         if not company_id:
-            return Response({"error": "Company ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": config['ID_REQUIRED']}, status=status.HTTP_400_BAD_REQUEST)
         try:
             # company = Company.objects.get(id=company_id)  # by manish
             company = ClientTemplateCompany.objects.get(id=company_id)
 
             required_columns = ["Origin Port", "Destination Port", "Transit\ntime", "20'GP", "40'HC", "Effective Date", "Expiration Date"]
             sheets_to_read = ['F.E', 'E.Africa', 'Gulf-Red Sea']  # Adjust sheet names as per your Excel file
+
+            # sheets_to_read = ['E.Africa']  # Adjust sheet names as per your Excel file
+
+            # required_columns = config.get("REQUIRED_COLUMN" , "").split(",")
+            # sheets_to_read = config.get("SHEETS_TO_READ" , "").split(",")  # Adjust sheet names as per your Excel file
             # sheets_to_read = ['E.Africa']  # Adjust sheet names as per your Excel file
 
             combined_df = pd.DataFrame()
@@ -252,16 +330,17 @@ class ImportExcelData(APIView):
                                 expiration_date=expiration_date,
                                 version=versioned_rate
                             )
-            return Response({"message": "Data imported successfully", "results": results}, status=status.HTTP_201_CREATED)
+            return Response({"message": f"Excel {config['SUCCESS_UPLOADED_MESSAGE']}", "results": results}, status=status.HTTP_201_CREATED)
 
-        except Company.DoesNotExist:
+        except ClientTemplateCompany.DoesNotExist:
             return Response({"error": "Company does not exist"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 class ExtractWordTableView(APIView):
     parser_classes = [MultiPartParser]
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsSystemOrClientAdmin|IsClientUserEditAndRead]
+    # permission_classes=[IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         try:
@@ -271,7 +350,7 @@ class ExtractWordTableView(APIView):
             # Extract company ID from the request data
             company_id = request.data.get('company_id')
             if not company_id:
-                return JsonResponse({"error": "Company ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+                return JsonResponse({"error": config['ID_REQUIRED']}, status=status.HTTP_400_BAD_REQUEST)
 
             # Process the uploaded Word document
             extracted_data, expiration_date = self.extract_table_data(file_obj)
@@ -283,7 +362,7 @@ class ExtractWordTableView(APIView):
             self.save_imported_data(converted_data, company_id)
 
             # Return JSON response
-            return Response({"message": "Data imported successfully", "results": converted_data}, status=status.HTTP_201_CREATED)
+            return Response({"message": f"Word {config['SUCCESS_UPLOADED_MESSAGE']}", "results": converted_data}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             # Handle exceptions (e.g., file not found, invalid format, etc.)
@@ -506,7 +585,8 @@ class ExtractWordTableView(APIView):
                     #         )
 
 class ExtractPDFTableView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsSystemOrClientAdmin|IsClientUserEditAndRead]
+    # permission_classes=[IsAuthenticated]
 
  
     def extract_valid_dates(self, text):
@@ -536,9 +616,9 @@ class ExtractPDFTableView(APIView):
     def process_document(self, content, mime_type):
         KEYFILE_PATH = r'E:\PROJECT\MooMove\app\shipment\aggregator\jspl-trocr-2024-419309-21a5c31d8f62.json'
         # Replace these with your actual Google Cloud project ID and processor ID
-        project_id = '997676275216'
-        location = 'us'
-        processor_id = 'e4a1cfe1810a8abb'
+        project_id = config['PROJECT_ID']
+        location = config['LOCATION']
+        processor_id = config['PROCESSOR_ID']
 
         # Authenticate with service account JSON key file
         credentials = service_account.Credentials.from_service_account_file(KEYFILE_PATH)
@@ -823,7 +903,7 @@ class ExtractPDFTableView(APIView):
                                     version=versioned_rate
                                 )
 
-                return Response({"message": "Data imported and saved successfully", "tables": all_tables}, status=status.HTTP_200_OK)
+                return Response({"message": f"PDF {config['SUCCESS_UPLOADED_MESSAGE']}", "tables": all_tables}, status=status.HTTP_200_OK)
 
         except KeyError:
             return Response({"error": "No 'file' key found in request data"}, status=status.HTTP_400_BAD_REQUEST)
@@ -831,9 +911,9 @@ class ExtractPDFTableView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class RateWithVersionsAPIView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
+    # permission_classes=[IsAuthenticated]
 
     def get(self, request, company_id):
         # print("company_id: ", company_id)
@@ -858,12 +938,13 @@ class RateWithVersionsAPIView(APIView):
             return Response(rate_serializer.data, status=status.HTTP_200_OK)
 
         except Rate.DoesNotExist:
-            return Response({"error": "Rates not found for the company"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": config['RATE_DATA_NOT_EXIST']}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
    
 class CompanyListAPIView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
+    # permission_classes=[IsAuthenticated]
 
     def get(self, request):
         companies = Company.objects.filter(soft_delete=False)
@@ -877,9 +958,9 @@ class CompanyListAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-
 class ClientTemplateCompanyAPIView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
+    # permission_classes=[IsAuthenticated]
 
     def get(self, request):
         companies = ClientTemplateCompany.objects.filter(soft_delete=False)
@@ -894,7 +975,8 @@ class ClientTemplateCompanyAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class SourceListAPIView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
+    # permission_classes=[IsAuthenticated]
 
     def get(self, request):
         sources = Source.objects.filter(soft_delete=False)
@@ -908,16 +990,56 @@ class SourceListAPIView(APIView):
     #         return Response(serializer.data, status=status.HTTP_201_CREATED)
     #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+    def post(self, request):
+        try:
+            with transaction.atomic():
+                requestData = request.data
+                source_name = requestData.get('name')
+
+                # Check if a source with the same name already exists
+                existing_source = Source.objects.filter(name=source_name).first()
+                if existing_source:
+                    return Response({"message": f"'{source_name}' source already exists"}, status=status.HTTP_200_OK)
+
+                # Create a new source if it doesn't exist
+                Source.objects.create(name=source_name)
+                return Response({'message': f"'{source_name}' source successfully created"}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class DestinaltionListAPIView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
+    # permission_classes=[IsAuthenticated]
 
     def get(self, request):
         destination = Destination.objects.filter(soft_delete=False)
         serializer = DestinationSerializer(destination, many=True)
         return Response(serializer.data)
     
+
+    def post(self, request):
+        try:
+            with transaction.atomic():
+                requestData = request.data
+                destination_name = requestData.get('name')
+
+                # Check if a destination with the same name already exists
+                existing_source = Destination.objects.filter(name=destination_name).first()
+                if existing_source:
+                    return Response({"message": f"'{destination_name}' destination already exists"}, status=status.HTTP_200_OK)
+
+                # Create a new destination if it doesn't exist
+                Destination.objects.create(name=destination_name)
+                return Response({'message': f"'{destination_name}' destination successfully created"}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
 class FrightTypeListAPIView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
+    # permission_classes=[IsAuthenticated]
 
     def get(self, request):
         freight_type = FreightType.objects.all()
@@ -932,21 +1054,20 @@ class FrightTypeListAPIView(APIView):
            existing_freight_type = FreightType.objects.filter(type=freight_type).first()
            if existing_freight_type:
                 # If the type already exists, return the message
-                return Response({"message": "already exists"}, status=status.HTTP_200_OK)
+                return Response({"message": config['EXIST_DATA']}, status=status.HTTP_200_OK)
            
             # Otherwise, create a new FreightType instance
            FreightType.objects.create(type=freight_type)
 
-           return Response({'message': 'Freight type created successfully'}, status=status.HTTP_201_CREATED)
+           return Response({'message': config['FREIGHT_TYPE_CREATED']}, status=status.HTTP_201_CREATED)
 
 
         except Exception as e:
            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
 
-
-
 class RateListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes =[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
+    # permission_classes = [IsAuthenticated]
     serializer_class = RateSerializer1
 
     def get_queryset(self):
@@ -958,13 +1079,14 @@ class RateListView(generics.ListAPIView):
             cursor.execute("SELECT * FROM get_combined_rates_data(%s, %s)", [source_id, destination_id])
             rows = cursor.fetchall()
 
-            columns = [
-                'id', 'unique_uuid', 'company_id', 'company_name', 'rate', 'currency',
-                'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
-                'expiration_date', 'un_number' ,'vessel_name', 'cargotype', 'voyage', 'hazardous', 'terms_condition', 'source_id', 'source_name', 'destination_id', 
-                'destination_name','transit_time_id','transit_time','freight_type_id','freight_type',
-                # 'client_template_id', 'client_template_name',
-            ]
+            # columns = [
+            #     'id', 'unique_uuid', 'company_id', 'company_name', 'rate', 'currency',
+            #     'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
+            #     'expiration_date', 'un_number' ,'vessel_name', 'cargotype', 'voyage', 'hazardous', 'terms_condition', 'source_id', 'source_name', 'destination_id', 
+            #     'destination_name','transit_time_id','transit_time','freight_type_id','freight_type',
+            #     # 'client_template_id', 'client_template_name',
+            # ]
+            columns = config.get("RATE_LIST_QUERYSET" , "").split(",")
             data = [dict(zip(columns, row)) for row in rows]
             return data  # Return as list of dictionaries for serialization
 
@@ -1012,7 +1134,8 @@ class RateListView(generics.ListAPIView):
 
 
 class ManualRateWithRateWithVersionsAPIView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly]
+    # permission_classes=[IsAuthenticated]
 
     def get(self, request, company_id):
         # print("clienttemplatecompany_id: ", clienttemplatecompany_id)
@@ -1026,10 +1149,9 @@ class ManualRateWithRateWithVersionsAPIView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
-
 class ManualRateListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated|IsClientUserEditAndRead|IsSystemAdministrator|IsClientAdministrator]
+    # permission_classes = [IsAuthenticated]
 
     #  FOR GET 
     def get(self, request):
@@ -1314,9 +1436,9 @@ class ManualRateListView(APIView):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-
 class UpadatingRateFrozenInfoListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly]
+    # permission_classes = [IsAuthenticated]
 
     def put(self, request, unique_uuid):
         requestData = request.data
@@ -1351,9 +1473,9 @@ class UpadatingRateFrozenInfoListView(APIView):
 
         return Response({"message": "isRateUsed updated successfully"}, status=status.HTTP_200_OK)
 
-
 class CustomerInfoListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsSystemOrClientAdmin|IsClientUserEditAndRead]
+    # permission_classes = [IsAuthenticated]
 
     #  FOR GET 
     def get(self, request):
@@ -1413,7 +1535,6 @@ class CustomerInfoListView(APIView):
             except CustomerInfo.DoesNotExist:
                 return Response({"error": "Customer not found"}, status=status.HTTP_404_NOT_FOUND)  
 
-
 class CutomerInfoDetailsListView(APIView):
      #  FOR GET BY ID 
     def get(self, request, id):
@@ -1433,10 +1554,9 @@ class CutomerInfoDetailsListView(APIView):
             # Handle any other errors
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-
-
 class RegistrationInfoListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsSystemOrClientAdmin]
+    # permission_classes = [IsAuthenticated]
 
     #  FOR GET 
     def get(self, request):
@@ -1468,32 +1588,54 @@ class RegistrationInfoListView(APIView):
         except Exception as err:
             return Response({'details': str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-
 class CommodityList(generics.ListCreateAPIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
 
     queryset = Comodity.objects.all()
     serializer_class = CommoditySerializer
 
-
 class IncoTermList(generics.ListCreateAPIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
 
     queryset = IncoTerm.objects.all()
     serializer_class = IncoTermSerializer
 
 # ACTIVITY LOG FUNCTION
 class ActivityLogView(APIView):
+    # permission_classes = [IsAuthenticated|IsSystemAdministrator]
     permission_classes = [IsAuthenticated]
+
+    # def get(self, request):
+    #     try:
+    #         activitityLogList = ActivityLog.objects.all()
+    #         activitityLogListSerializer = ActivityLogSerializer(activitityLogList, many=True)
+    #         return Response(activitityLogListSerializer.data)
+
+    #     except Exception as err:
+    #         return Response("Something went wrong")  
+
 
     def get(self, request):
         try:
-            activitityLogList = ActivityLog.objects.all()
+            # Fetching filters from query parameters (if provided)
+            recent_only = request.query_params.get('recent', 'false').lower() == 'true'
+            user_id = request.query_params.get('user_id')  # Optional filter by user
+
+            # If recent_only is enabled, fetch logs for the past 7 days (or modify this duration as needed)
+            if recent_only:
+                seven_days_ago = datetime.now() - timedelta(days=7)
+                activitityLogList = ActivityLog.objects.filter(
+                    Q(created_at__gte=seven_days_ago) &
+                    (Q(userId=user_id) if user_id else Q())
+                ).order_by('-created_at')
+            else:
+                activitityLogList = ActivityLog.objects.all().order_by('-created_at')
+
             activitityLogListSerializer = ActivityLogSerializer(activitityLogList, many=True)
             return Response(activitityLogListSerializer.data)
 
         except Exception as err:
-            return Response("Something went wrong")  
+            return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
     def post(self, request):
