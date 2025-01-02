@@ -13,7 +13,7 @@ config={
 # Base settings
 BASE_DIR = Path(__file__).resolve().parent.parent
 # SECRET_KEY = 'django-insecure-*xn$u(lg+-z1u_uld9chorb)qgy3^vp-quu38e0*&%ff(83hie'
-SECRET_KEY=config("SECRET_KEY")
+SECRET_KEY= f'{config["SECRET_KEY"]}'
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 AUTH_USER_MODEL = 'uauth.User'
@@ -148,13 +148,13 @@ SOCIALACCOUNT_PROVIDERS = {
 # Google credentials
 # SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '728042667394-qkktvjnbte5a30a9j35u8u5c3ps53tnu.apps.googleusercontent.com'
 # SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=config("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=config("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=f'{config["SOCIAL_AUTH_GOOGLE_OAUTH2_KEY"]}'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=f'{config["SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET"]}'
 
 
-LOGIN_REDIRECT_URL=config("LOGIN_REDIRECT_URL")
-SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI=config("SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI")
-LOGOUT_REDIRECT_URL = config('LOGOUT_REDIRECT_URL', default='/')
+LOGIN_REDIRECT_URL=f'{config["LOGIN_REDIRECT_URL"]}'
+SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI=f'{config["SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI"]}'
+LOGOUT_REDIRECT_URL = f'{config['LOGOUT_REDIRECT_URL']}'
 # LOGIN_REDIRECT_URL = '/dashboard/'
 # # SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://testmoomoveui.s3-website.ap-south-1.amazonaws.com/accounts/google/login/callback/'  # Redirect after successful login
 # SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://localhost:4200/dashboard/'  # Redirect after successfull login
