@@ -13,7 +13,7 @@ config={
 # Base settings
 BASE_DIR = Path(__file__).resolve().parent.parent
 # SECRET_KEY = 'django-insecure-*xn$u(lg+-z1u_uld9chorb)qgy3^vp-quu38e0*&%ff(83hie'
-f'SECRET_KEY={config["SECRET_KEY"]}'
+SECRET_KEY=config("SECRET_KEY")
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 AUTH_USER_MODEL = 'uauth.User'
