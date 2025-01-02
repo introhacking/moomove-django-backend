@@ -154,7 +154,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=f'{config["SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET"]}'
 
 LOGIN_REDIRECT_URL=f'{config["LOGIN_REDIRECT_URL"]}'
 SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI=f'{config["SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI"]}'
-LOGOUT_REDIRECT_URL = f'{config['LOGOUT_REDIRECT_URL']}'
+LOGOUT_REDIRECT_URL = f'{config["LOGOUT_REDIRECT_URL"]}'
 # LOGIN_REDIRECT_URL = '/dashboard/'
 # # SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://testmoomoveui.s3-website.ap-south-1.amazonaws.com/accounts/google/login/callback/'  # Redirect after successful login
 # SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://localhost:4200/dashboard/'  # Redirect after successfull login
