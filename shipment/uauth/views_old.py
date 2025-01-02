@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.contrib.auth import authenticate,login
+from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status,generics
 from .serializers import *
@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework import viewsets
 from .role_permission import *
 from rest_framework.permissions import IsAuthenticated
-
+from rest_framework import viewsets
 from django.http import FileResponse, HttpResponse
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -22,15 +22,6 @@ from cryptography.fernet import Fernet
 import io, os
 from django.conf import settings
 from datetime import date
-from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
-#from rest_framework_social_oauth2.views import ConvertTokenView
-from rest_framework.permissions import AllowAny
-# from social_django.utils import load_strategy, load_backend
-# from social_core.exceptions import AuthException
-#import logging
-# logger = logging.getLogger(__name__)
-
 
 def get_tokens_for_user(user):
   refresh = RefreshToken.for_user(user)
@@ -44,91 +35,14 @@ def get_tokens_for_user(user):
 
 # cipher_suite = Fernet(key)
 
-# #new added 23 dec
-# class GoogleLoginView(ConvertTokenView):
-#     permission_classes = [AllowAny]
 
-#new added 24 dec
-# class GoogleLoginAPIView(APIView):
-#     permission_classes = [AllowAny]
-
-#     def post(self, request):
-#         oauth_token = request.data.get('oauth_token')
-
-#         if not oauth_token:
-#             return Response({'error': 'OAuth token is required'}, status=400)
-
-#         strategy = load_strategy(request)
-#         backend = strategy.get_backend('google-oauth2')
-
-#         try:
-#             # Authenticate the user with Google
-#             user = backend.do_auth(oauth_token)
-#             if user:
-#                 login(request, user)  # Log the user in
-#                 refresh = RefreshToken.for_user(user)
-#                 access_token = refresh.access_token
-
-#                 return Response({
-#                     "status": True,
-#                     "message": "Google login successful",
-#                     "token": {
-#                         "refresh": str(refresh),
-#                         "access": str(access_token),
-#                     },
-#                     "user": {
-#                         "id": user.id,
-#                         "email": user.email,
-#                         "name": user.get_full_name(),
-#                     },
-#                 }, status=200)
-#             else:
-#                 return Response({'error': 'Authentication failed'}, status=401)
-#         except Exception as e:
-#             return Response({'error': str(e)}, status=400)
-
-# class ForgotPasswordView(APIView):
-#     def post(self, request):
-#         serializer = ForgotPasswordSerializer(data=request.data)
-#         if serializer.is_valid():
-#             email = serializer.validated_data.get('email')
-#             try:
-#                 user = User.objects.get(email=email)
-#                 send_opt_via_email(email)
-#                 return Response({'message': 'OTP sent successfully.'}, status=status.HTTP_200_OK)
-#             except User.DoesNotExist:
-#                 return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# class PasswordResetView(APIView):
-#     def post(self, request):
-#         serializer = PasswordResetSerializer(data=request.data)
-#         if serializer.is_valid():
-#             email = serializer.validated_data.get('email')
-#             otp = serializer.validated_data.get('otp')
-#             password1 = serializer.validated_data.get('password1')
-#             password2 = serializer.validated_data.get('password2')
-#             try:
-#                 user = User.objects.get(email=email)
-#                 if user.otp != otp:
-#                     return Response({'error': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
-#                 if password1 != password2:
-#                     return Response({'error': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
-#                 user.set_password(password1)
-#                 user.save()
-#                 return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
-#             except User.DoesNotExist:
-#                 return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#new added 31 dec
 class ForgotPasswordView(APIView):
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data.get('email')
             try:
-                user = User.objects.get(email=email)
+                User.objects.get(email=email)
                 send_opt_via_email(email)
                 return Response({'status': 200 ,'message': 'OTP sent successfully to your registered email.'}, status=status.HTTP_200_OK)
             except User.DoesNotExist:
@@ -139,27 +53,22 @@ class PasswordResetView(APIView):
     def post(self, request):
         serializer = PasswordResetSerializer(data=request.data)
         if serializer.is_valid():
-            # Get validated data
             email = serializer.validated_data.get('email')
             otp = serializer.validated_data.get('otp')
             password1 = serializer.validated_data.get('password1')
-
+            password2 = serializer.validated_data.get('password2')
             try:
                 user = User.objects.get(email=email)
-
-                # Validate OTP
-                if str(user.otp) != str(otp):  # Ensure type consistency
+                if user.otp != otp:
                     return Response({'status': 400 ,'error': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
-                # Reset password
+                if password1 != password2:
+                    return Response({'status': 400 , 'error': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
                 user.set_password(password1)
-                user.otp = None  # Clear OTP
                 user.save()
-
                 return Response({'status': 200 , 'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
             except User.DoesNotExist:
                 return Response({'status': 404 , 'error': 'This email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class AuthenticatedPasswordResetView(APIView):
     def post(self, request):
@@ -169,74 +78,132 @@ class AuthenticatedPasswordResetView(APIView):
             return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
+
+
 class UserRegisterAPIView(generics.CreateAPIView):
     serializer_class = UserSerializer
+
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        # Perform user registration
-        user = self.perform_create(serializer)
-
-        email = serializer.validated_data.get('email', user.email if user else None)
-
+        
+        # Perform custom save logic based on the role
+        self.perform_create(serializer)
+        
+        # Send email after successful creation
+        email = serializer.validated_data.get('email')
         try:
-            # Send verification email if the user is not verified
-            if not user.is_verified:
-                self.send_verification_email(email)
+            user = User.objects.get(email=email)
+            send_rgain_via_email(email)
             return Response({
                 'message': 'User created successfully and OTP sent.',
                 'user': serializer.data
             }, status=status.HTTP_201_CREATED)
-        except ValidationError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            return Response({'error': 'User creation failed. Email not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     def perform_create(self, serializer):
-        """
-        Handle normal user registration and ensure a role is assigned.
-        """
-        role = serializer.validated_data.get('role')
-        if not role:
-            raise ValidationError("Role must be assigned during registration.")
-        user = serializer.save(role=role)
-        return user
+        user = serializer.save()
 
-    def send_verification_email(self, email):
-        """
-        Send a verification email to the user.
-        """
-        if not email:
-            raise ValidationError("Email address is required for verification.")
-        # Placeholder for sending the email
-        send_rgain_via_email(email)
-        
-        print(f"Verification email sent to {email}")
 
+# class UserLoginView(generics.GenericAPIView):
+#     serializer_class = UserLoginSerializer
+
+#     def post(self, request, format=None):
+#         serializer = UserLoginSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         email = serializer.validated_data.get('email')
+#         password = serializer.validated_data.get('password')
+#         user = authenticate(email=email, password=password)
+
+#         if user is not None:
+#             # Check if the user is an admin
+#             if user.is_admin:
+#                 # Admins bypass role and license checks
+#                 token = get_tokens_for_user(user)
+#                 role_serializer = RoleTypeSerializer(user.role) if user.role else None
+
+#                 user_data = {
+#                     'name': user.name,
+#                     'id': user.id,
+#                     'email': user.email,
+#                     'role': role_serializer.data if role_serializer else None,
+#                     'is_verified': user.is_verified,
+#                     'is_org_admin': user.is_org_admin,
+#                     'is_admin': user.is_admin,
+#                 }
+
+#                 return Response({
+#                     'status': True,
+#                     'token': token,
+#                     'message': 'Login Success',
+#                     'user': user_data
+#                 }, status=status.HTTP_200_OK)
+
+#             # Check if the user is verified
+#             if not user.is_verified:
+#                 return Response({"status": False, "message": "User Account Freezed!"}, status=status.HTTP_403_FORBIDDEN)
+
+#             # Check if the user has a role and return role info
+#             if hasattr(user, 'role') and user.role:
+#                 role = user.role
+#                 role_serializer = RoleTypeSerializer(role)
+
+#                 user_data = {
+#                     'name': user.name,
+#                     'id': user.id,
+#                     'email': user.email,
+#                     'role': role_serializer.data,
+#                     'is_verified': user.is_verified,
+#                     'is_org_admin': user.is_org_admin,
+#                     'is_admin': user.is_admin,
+#                 }
+#                 token = get_tokens_for_user(user)
+
+#                 return Response({
+#                     'status': True,
+#                     'token': token,
+#                     'message': 'Login Success',
+#                     'user': user_data
+#                 }, status=status.HTTP_200_OK)
+#             else:
+#                 return Response(
+#                     {"status": False, "message": "User has no role associated."},
+#                     status=status.HTTP_403_FORBIDDEN
+#                 )
+#         else:
+#             return Response({'status': False, 'message': 'Email or Password is not Valid'}, status=status.HTTP_400_BAD_REQUEST)
 
 class UserLoginView(APIView):
     def post(self, request, format=None):
-        # Handle email-password login
+        # Validate user credentials
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        
         email = serializer.validated_data.get('email')
         password = serializer.validated_data.get('password')
         user = authenticate(email=email, password=password)
 
         if user is None:
-            return Response({"status": False, "message": "Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": False, "message": "Invalid email or password."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not user.is_active:
             return Response({"status": False, "message": "User account is inactive."}, status=status.HTTP_403_FORBIDDEN)
 
+        # Skip is_verified check for admin users
         if not user.is_verified and not user.is_admin:
-            return Response({"status": False, "message": "User account is not verified."}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"status": False, "message": "Your account is not verified."}, status=status.HTTP_403_FORBIDDEN)
 
+        # Generate tokens
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
+
+        # Prepare the response data
         role_serializer = RoleTypeSerializer(user.role) if user.role else None
         user_data = {
-            'id': user.id,
+            'userId': user.id,
             'email': user.email,
             'name': user.name,
             'mobile_number': user.mobile_number,
@@ -255,78 +222,6 @@ class UserLoginView(APIView):
             },
             "user": user_data,
         }, status=status.HTTP_200_OK)
-
-#new added 25 dec
-# class GoogleLoginView(APIView):
-#     def post(self, request):
-#         serializer = GoogleLoginSerializer(data=request.data)
-#         if serializer.is_valid():
-#             user = serializer.validated_data['User']
-#             # You can create a token here or use your authentication method
-#             return Response({
-#                 'user_id': user.id,
-#                 'email': user.email,
-#                 'name': user.name,
-#                 'role': user.role.role_name if user.role else 'No Role',
-#                 'message': 'Google login successful'
-#             }, status=status.HTTP_200_OK)
-
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#new added 31 dec
-
-User = get_user_model()
-
-# Helper function to generate JWT tokens
-def generate_tokens(user):
-    refresh = RefreshToken.for_user(user)
-    return {
-        'refresh': str(refresh),
-        'access': str(refresh.access_token),
-    }
-
-class GoogleLoginView(APIView):
-    def post(self, request):
-        serializer = GoogleLoginSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            
-            # Generate tokens for the authenticated user
-            tokens = generate_tokens(user)
-            
-            # Include user data in the response
-            return Response({
-                'user_id': user.id,
-                'email': user.email,
-                'name': user.name,
-                'role': user.role.role_name if user.role else 'No Role',
-                'message': 'Google login successful',
-                'tokens': tokens  # JWT tokens for authentication
-            }, status=status.HTTP_200_OK)
-        
-        # Handle invalid data
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    
-class UserLogoutView(generics.GenericAPIView):
-    serializer_class = LogoutSerializer
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, format=None):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        try:
-            # Blacklist the refresh token
-            refresh_token = serializer.validated_data.get('refresh_token')
-            RefreshToken(refresh_token).blacklist()
-            return Response({"status": True, "message": "Logout successful"}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
 
 class UserDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
@@ -370,21 +265,21 @@ class UpdateUserVerificationView(generics.UpdateAPIView):
             'data': serializer.data
         }, status=status.HTTP_200_OK)
 
-# class UserLogoutView(generics.GenericAPIView):
-#     serializer_class = LogoutSerializer
-#     permission_classes = [IsAuthenticated]
+class UserLogoutView(generics.GenericAPIView):
+    serializer_class = LogoutSerializer
+    permission_classes = [IsAuthenticated]
 
-#     def post(self, request, format=None):
-#         serializer = self.serializer_class(data=request.data)
-#         serializer.is_valid(raise_exception=True)
+    def post(self, request, format=None):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-#         try:
-#             # Blacklist the refresh token
-#             refresh_token = serializer.validated_data.get('refresh_token')
-#             RefreshToken(refresh_token).blacklist()
-#             return Response({"status": True, "message": "Logout successful"}, status=status.HTTP_200_OK)
-#         except Exception as e:
-#             return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            # Blacklist the refresh token
+            refresh_token = serializer.validated_data.get('refresh_token')
+            RefreshToken(refresh_token).blacklist()
+            return Response({"status": True, "message": "Logout successful"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 
 # class PermissionsViewSet(viewsets.ModelViewSet):

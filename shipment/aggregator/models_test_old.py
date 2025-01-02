@@ -8,7 +8,6 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone    # new for search history
 # from datetime import timedelta       # new for search history
 from datetime import datetime
-from django.conf import settings
 
 
 class Source(models.Model):
@@ -229,14 +228,8 @@ class Registration(models.Model):
     
 
 # ACTIVITY LOG 
-# 30/Dec/2024
 class ActivityLog(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,  # Dynamically points to the custom user model
-        on_delete=models.CASCADE,
-        related_name='activity_logs',
-        null=True 
-    )
+    userId = models.IntegerField()
     action_type = models.CharField(max_length=150)
     action_status = models.BooleanField(null=True)
     source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, blank=True)
@@ -244,21 +237,6 @@ class ActivityLog(models.Model):
     description = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def _str_(self):
-        return f"Action Log | {self.user} | {self.action_status} | {self.action_type} on {self.created_at}"
-
-
-# class ActivityLog(models.Model):
-#     userId = models.IntegerField()
-#     action_type = models.CharField(max_length=150)
-#     action_status = models.BooleanField(null=True)
-#     source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, blank=True)
-#     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, null=True, blank=True)
-#     description = models.CharField(max_length=255)
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def __str__(self):
-#         return f"Action of Log | {self.userId} | {self.action_status} | {self.action_type} on {self.created_at}"
+    def __str__(self):
+        return f"Action of Log | {self.userId} | {self.action_status} | {self.action_type} on {self.created_at}"
     
-
-

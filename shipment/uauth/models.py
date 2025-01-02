@@ -1,6 +1,6 @@
 from django.db import models
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
-
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
+from django.contrib.auth.models import Permission
 # Gender choices for the PersonalDetails model
 GENDER_CHOICES = (
     ("M", "Male"),
@@ -17,83 +17,181 @@ class Permissions(models.Model):
         return self.route_path
 
 
+#new added 23 dec
 class RoleType(models.Model):
-    role_name = models.CharField(max_length=50)
-    role_description = models.TextField(null=True, blank=True)
-    role_permissions = models.ManyToManyField(Permissions)
+    SYSTEM_ADMINISTRATOR = 'System Administrator'
+    CLIENT_ADMINISTRATION = 'Client Administrator'
+    CLIENT_USER_OPERATOR = 'Client User (Edit and Read)'
+    CLIENT_USER_READ_ONLY = 'Client User (Read Only)'
+    USER='User'
 
-    def __str__(self) -> str:
+
+    ROLE_CHOICES = [
+        (SYSTEM_ADMINISTRATOR, 'System Administrator'),
+        (CLIENT_ADMINISTRATION, 'Client Administrator'),
+        (CLIENT_USER_OPERATOR,  'Client User (Edit and Read)'),
+        (CLIENT_USER_READ_ONLY, 'Client User (Read Only)'),
+        (USER, 'User'),
+    ]
+
+    role_name = models.CharField(max_length=255, choices=ROLE_CHOICES)
+    #role_description = models.TextField()
+
+    def __str__(self):
         return self.role_name
 
 
+# class UserManager(BaseUserManager):
+#     def create_user(self, email, name, password=None, **extra_fields):
+#         if not email:
+#             raise ValueError('The Email field must be set')
+#         email = self.normalize_email(email)
+#         user = self.model(email=email, name=name, **extra_fields)
+#         user.set_password(password)
+#         user.save(using=self._db)
+#         return user
+
+#     def create_superuser(self, email, name, password=None, **extra_fields):
+#         extra_fields.setdefault('is_admin', True)
+#         extra_fields.setdefault('is_staff', True)
+#         return self.create_user(email, name, password, **extra_fields)
+
+
+# class User(AbstractBaseUser):
+#     #email = models.EmailField(unique=True)
+#     email = models.EmailField(unique=True, null=False, blank=False, default="placeholder@example.com")
+
+#     name = models.CharField(max_length=255)
+#     mobile_number = models.CharField(max_length=15, blank=True, null=True)
+#     role = models.ForeignKey(RoleType, on_delete=models.SET_NULL, null=True, blank=True)
+#     is_verified = models.BooleanField(default=False)
+#     is_active = models.BooleanField(default=True)
+#     is_admin = models.BooleanField(default=False)
+#     is_org_admin = models.BooleanField(default=False)
+#     is_staff = models.BooleanField(default=False)  #new added
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+
+#     USERNAME_FIELD = 'email'
+#     REQUIRED_FIELDS = ['name']
+
+#     objects = UserManager()
+
+#     def __str__(self):
+#         return self.email
+    
+#     def has_perm(self, perm, obj=None):
+#         """
+#         Return True if the user has the given permission. We are only considering superusers here.
+#         You can extend this to check for specific permissions assigned to this user.
+#         """
+#         # If the user is a superuser, they have all permissions
+#         if self.is_admin:
+#             return True
+
+#         # Implement additional permission logic here, e.g., checking custom permissions
+#         # Example: if user has a specific role that grants permission, return True
+#         if self.role == "admin":
+#             return perm == "can_manage_system"  # example permission check
+
+#         return False
+
+#     def has_module_perms(self, app_label):
+#         """
+#         Return True if the user has permissions for the given app_label. 
+#         For example, checking if the user has permissions for a specific app.
+#         """
+#         # If the user is a superuser, they have permissions for all modules
+#         if self.is_admin:
+#             return True
+
+#         # Implement more granular permission logic per app if necessary
+#         if self.role == "admin":
+#             # Example: Admin has access to a specific app (e.g., "shipping")
+#             if app_label == "shipment":
+#                 return True
+
+#         return False
+
 class UserManager(BaseUserManager):
-    def create_user(self, name, role, email=None, mobile_number=None, password=None):
-        if not email and not mobile_number:
-            raise ValueError('Either email or mobile number must be set')
-
-        user = self.model(
-            email=self.normalize_email(email),
-            name=name,
-            role=role,
-            mobile_number=mobile_number
-        )
-
+    def create_user(self, email, name, password=None, **extra_fields):
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        user = self.model(email=email, name=name, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, name, role=None, email=None, mobile_number=None, password=None):
-        user = self.create_user(
-            email=email,
-            mobile_number=mobile_number,
-            password=password,
-            name=name,
-            role=role,
-        )
-        user.is_admin = True
+    def create_superuser(self, email, name, password=None, **extra_fields):
+        extra_fields.setdefault('is_admin', True)
+        extra_fields.setdefault('is_staff', True)
+        return self.create_user(email, name, password, **extra_fields)
+
+    def create_user_from_google(self, email, name, **extra_fields):
+        """
+        Creates a user from Google login. 
+        No password is set since OAuth handles authentication.
+        """
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        user = self.model(email=email, name=name, **extra_fields)
+        user.set_unusable_password()  # No password is required for Google-authenticated users
         user.save(using=self._db)
         return user
 
 
-class User(AbstractBaseUser):
-    email = models.EmailField(
-        verbose_name='Email',
-        max_length=255,
-        unique=True,
-        null=True,
-        default=None,
-        blank=False
-    )
-    name = models.CharField(max_length=200)
-    mobile_number = models.CharField(unique=True, max_length=20, null=True, blank=True)
-    role = models.ForeignKey(RoleType, on_delete=models.CASCADE, null=True, blank=True)
-    otp = models.IntegerField(default=0)
-    is_org_admin = models.BooleanField(default=False)
-    is_password_freezed = models.BooleanField(default=False)
+class User(AbstractBaseUser, PermissionsMixin):  # Added PermissionsMixin for Django permissions compatibility
+    email = models.EmailField(unique=True, null=False, blank=False, default="placeholder@example.com")
+    name = models.CharField(max_length=255)
+    mobile_number = models.CharField(max_length=15, blank=True, null=True)
+    role = models.ForeignKey('RoleType', on_delete=models.SET_NULL, null=True, blank=True)
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
+    is_org_admin = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)  # Used for admin panel access
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    objects = UserManager()
+    #new added
+    otp = models.CharField(max_length=6, blank=True, null=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
 
+    objects = UserManager()
+
     def __str__(self):
-        return self.email if self.email else self.mobile_number
+        return self.email
 
     def has_perm(self, perm, obj=None):
-        return self.is_admin
+        """
+        Return True if the user has the given permission. We are only considering superusers here.
+        You can extend this to check for specific permissions assigned to this user.
+        """
+        if self.is_admin:
+            return True
+
+        # Implement additional permission logic here, e.g., checking custom permissions
+        if self.role and self.role.role_name  == "System Administrator":  # Assuming `RoleType` has a `role_name ` field admin (remove)
+            return perm == "can_manage_system"  # Example permission check
+
+        return False
 
     def has_module_perms(self, app_label):
-        return True
+        """
+        Return True if the user has permissions for the given app_label.
+        For example, checking if the user has permissions for a specific app.
+        """
+        if self.is_admin:
+            return True
 
-    @property
-    def is_staff(self):
-        return self.is_admin
+        if self.role and self.role.role_name == "System Administrator":
+            if app_label == "uauth":
+                return True
 
+        return False
 
 class UserRole(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

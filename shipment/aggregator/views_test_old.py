@@ -1490,30 +1490,26 @@ class CustomerInfoListView(APIView):
     # FOR POST
     def post(self, request):
         try:
-           customer_serializer = CustomerInfoSerializer(data=request.data)
-           if customer_serializer.is_valid():
-              customer_serializer.save()
-
-            # requestData = request.data
-            # company_name = requestData.get('company_name')
-            # cust_name = requestData.get('cust_name')
-            # cust_email = requestData.get('cust_email')
-            # sales_represent = requestData.get('sales_represent')
-            # phone = requestData.get('phone')
-            # percentage = requestData.get('percentage')
-            # terms_condition = requestData.get('terms_condition')
+            requestData = request.data
+            company_name = requestData.get('company_name')
+            cust_name = requestData.get('cust_name')
+            cust_email = requestData.get('cust_email')
+            sales_represent = requestData.get('sales_represent')
+            phone = requestData.get('phone')
+            percentage = requestData.get('percentage')
+            terms_condition = requestData.get('terms_condition')
             
-            # CustomerInfo.objects.create(
-            # company_name=company_name,
-            # cust_name=cust_name,
-            # cust_email=cust_email,
-            # sales_represent=sales_represent,
-            # phone=phone,
-            # percentage=percentage,
-            # terms_condition=terms_condition,
-            # )
+            CustomerInfo.objects.create(
+            company_name=company_name,
+            cust_name=cust_name,
+            cust_email=cust_email,
+            sales_represent=sales_represent,
+            phone=phone,
+            percentage=percentage,
+            terms_condition=terms_condition,
+            )
 
-              return Response({'message': 'Customer created successfully', 'data': customer_serializer.data}, status=status.HTTP_201_CREATED)
+            return Response({'message': 'Customer created successfully'}, status=status.HTTP_201_CREATED)
 
             
         except Exception as err:
@@ -1605,113 +1601,64 @@ class IncoTermList(generics.ListCreateAPIView):
     serializer_class = IncoTermSerializer
 
 # ACTIVITY LOG FUNCTION
-
-# 30/Dec/2024
 class ActivityLogView(APIView):
-    permission_classes = [IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]  # Ensure only authenticated users access this view
+    # permission_classes = [IsAuthenticated|IsSystemAdministrator]
+    permission_classes = [IsAuthenticated]
+
+    # def get(self, request):
+    #     try:
+    #         activitityLogList = ActivityLog.objects.all()
+    #         activitityLogListSerializer = ActivityLogSerializer(activitityLogList, many=True)
+    #         return Response(activitityLogListSerializer.data)
+
+    #     except Exception as err:
+    #         return Response("Something went wrong")  
+
 
     def get(self, request):
         try:
-            # Fetch recent_only filter from query parameters
+            # Fetching filters from query parameters (if provided)
             recent_only = request.query_params.get('recent', 'false').lower() == 'true'
+            user_id = request.query_params.get('user_id')  # Optional filter by user
 
-            # Filter logs for the logged-in user only
-            query = ActivityLog.objects.filter(user=request.user)
-
-            # If recent_only is enabled, fetch logs for the past 7 days
+            # If recent_only is enabled, fetch logs for the past 7 days (or modify this duration as needed)
             if recent_only:
                 seven_days_ago = datetime.now() - timedelta(days=7)
-                query = query.filter(created_at__gte=seven_days_ago)
+                activitityLogList = ActivityLog.objects.filter(
+                    Q(created_at__gte=seven_days_ago) &
+                    (Q(userId=user_id) if user_id else Q())
+                ).order_by('-created_at')
+            else:
+                activitityLogList = ActivityLog.objects.all().order_by('-created_at')
 
-            # Order logs by creation date (most recent first)
-            activitityLogList = query.order_by('-created_at')
-
-            # Serialize and return the data
             activitityLogListSerializer = ActivityLogSerializer(activitityLogList, many=True)
             return Response(activitityLogListSerializer.data)
 
         except Exception as err:
             return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
     def post(self, request):
         try:
             with transaction.atomic():
                 requestData = request.data
+                print(requestData)
+                userId = requestData.get('userId')
+                action_type = requestData.get('action_type')
+                action_status = requestData.get('action_status')
+                description = requestData.get('description')
+                source_id = requestData.get('source_id')
+                destination_id = requestData.get('destination_id')
                 
-                # Create an activity log linked to the logged-in user
                 ActivityLog.objects.create(
-                    user=request.user,
-                    action_type=requestData.get('action_type'),
-                    action_status=requestData.get('action_status'),
-                    description=requestData.get('description'),
-                    source_id=requestData.get('source_id'),
-                    destination_id=requestData.get('destination_id'),
+                userId=userId,
+                action_type=action_type,
+                action_status=action_status,
+                description=description,
+                source_id=source_id,
+                destination_id=destination_id,
                 )
-            return Response({'message': 'Log created successfully'}, status=status.HTTP_201_CREATED)
+            return Response({'message': 'Log created successfully'}, status=status.HTTP_201_CREATED)    
 
         except Exception as err:
-            return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
-# class ActivityLogView(APIView):
-#     # permission_classes = [IsAuthenticated|IsSystemAdministrator]
-#     permission_classes = [IsAuthenticated]
-
-#     # def get(self, request):
-#     #     try:
-#     #         activitityLogList = ActivityLog.objects.all()
-#     #         activitityLogListSerializer = ActivityLogSerializer(activitityLogList, many=True)
-#     #         return Response(activitityLogListSerializer.data)
-
-#     #     except Exception as err:
-#     #         return Response("Something went wrong")  
-
-
-#     def get(self, request):
-#         try:
-#             # Fetching filters from query parameters (if provided)
-#             recent_only = request.query_params.get('recent', 'false').lower() == 'true'
-#             user_id = request.query_params.get('user_id')  # Optional filter by user
-
-#             # If recent_only is enabled, fetch logs for the past 7 days (or modify this duration as needed)
-#             if recent_only:
-#                 seven_days_ago = datetime.now() - timedelta(days=7)
-#                 activitityLogList = ActivityLog.objects.filter(
-#                     Q(created_at__gte=seven_days_ago) &
-#                     (Q(userId=user_id) if user_id else Q())
-#                 ).order_by('-created_at')
-#             else:
-#                 activitityLogList = ActivityLog.objects.all().order_by('-created_at')
-
-#             activitityLogListSerializer = ActivityLogSerializer(activitityLogList, many=True)
-#             return Response(activitityLogListSerializer.data)
-
-#         except Exception as err:
-#             return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-#     def post(self, request):
-#         try:
-#             with transaction.atomic():
-#                 requestData = request.data
-#                 print(requestData)
-#                 userId = requestData.get('userId')
-#                 action_type = requestData.get('action_type')
-#                 action_status = requestData.get('action_status')
-#                 description = requestData.get('description')
-#                 source_id = requestData.get('source_id')
-#                 destination_id = requestData.get('destination_id')
-                
-#                 ActivityLog.objects.create(
-#                 userId=userId,
-#                 action_type=action_type,
-#                 action_status=action_status,
-#                 description=description,
-#                 source_id=source_id,
-#                 destination_id=destination_id,
-#                 )
-#             return Response({'message': 'Log created successfully'}, status=status.HTTP_201_CREATED)    
-
-#         except Exception as err:
-#             return Response("Something went wrong")        
+            return Response("Something went wrong")        

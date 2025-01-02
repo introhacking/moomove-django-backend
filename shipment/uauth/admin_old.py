@@ -10,44 +10,27 @@ from .models import (
 
 
 # Custom admin for User model
-#new added 23 dec
-# @admin.register(User)
-# class UserAdmin(admin.ModelAdmin):
-#     list_display = ('name', 'email', 'mobile_number', 'is_org_admin', 'is_verified', 'is_active', 'is_admin', 'role')
-#     search_fields = ('email', 'name', 'mobile_number')
-#     list_filter = ('is_org_admin', 'is_verified', 'is_active', 'is_admin', 'role')
-#     ordering = ('created_at',)
-#     readonly_fields = ('created_at', 'updated_at')
-
-# # Custom admin for RoleType model
-# @admin.register(RoleType)
-# class RoleTypeAdmin(admin.ModelAdmin):
-#     list_display = ('role_name', 'role_description')
-#     search_fields = ('role_name', 'role_description')
-#     filter_horizontal = ('role_permissions',)
-
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'mobile_number', 'is_org_admin', 'is_verified', 'is_active', 'is_admin', 'role')
+    list_display = ('name', 'email', 'mobile_number', 'is_org_admin', 'is_verified', 'is_active', 'is_admin')
     search_fields = ('email', 'name', 'mobile_number')
-    list_filter = ('is_org_admin', 'is_verified', 'is_active', 'is_admin', 'role')
+    list_filter = ('is_org_admin', 'is_verified', 'is_active', 'is_admin')
     ordering = ('created_at',)
     readonly_fields = ('created_at', 'updated_at')
 
-    def get_role(self, obj):
-        return obj.role.role_name if obj.role else None
 
 # Custom admin for RoleType model
 @admin.register(RoleType)
 class RoleTypeAdmin(admin.ModelAdmin):
-    list_display = ('role_name', )
-    search_fields = ('role_name', )
-    #filter_horizontal = ('role_permissions',)
+    list_display = ('role_name',)
+    search_fields = ('role_name',)
+    filter_horizontal = ('role_permissions',)
+
 
 # Custom admin for Permissions model
 @admin.register(Permissions)
 class PermissionsAdmin(admin.ModelAdmin):
-    list_display = ('route_path',)
+    list_display = ('route_path', 'permission_description')
     search_fields = ('route_path',)
 
 

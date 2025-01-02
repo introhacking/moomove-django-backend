@@ -96,7 +96,7 @@ def send_rgain_via_email(email):
     
     # Construct the URL
     #reset_url = "https://csm.augtrans.com:8226/auth/sign-in"
-    reset_url = "http://testmoomoveui.s3-website.ap-south-1.amazonaws.com"
+    reset_url = "http://testmoomoveui.s3-website.ap-south-1.amazonaws.com/"
 
     # Email body
     email_body = f"""

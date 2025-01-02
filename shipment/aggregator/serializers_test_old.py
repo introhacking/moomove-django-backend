@@ -215,21 +215,68 @@ class IncoTermSerializer(serializers.ModelSerializer):
 
 
 # ACTIVITY SERIALIZER
-
-# 30/Dec/2024
-class ActivityLogSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()  # You can customize this to display user email or username
+class ActivityLogSerializer(serializers.Serializer):
     source = SourceSerializer()
     destination = DestinationSerializer()
-
     class Meta:
-        model = ActivityLog
-        fields = ['id', 'user', 'action_type', 'action_status', 'source', 'destination', 'description','created_at']
+        model = ActivityLog,
+        fields = '__all__' 
 
 
-# class ActivityLogSerializer(serializers.Serializer):
-#     source = SourceSerializer()
-#     destination = DestinationSerializer()
+# ROLE SERIALIZER
+# class RegisterSerializer(serializers.ModelSerializer):
+#     role = serializers.CharField(write_only=True)  # Accept role as a string (name)
+
 #     class Meta:
-#         model = ActivityLog,
-#         fields = '__all__' 
+#         model = User
+#         fields = ['username', 'email', 'password', 'role']
+
+#     def validate_role(self, value):
+#         """Validate that the role exists and return the role instance."""
+#         try:
+#             role = Role.objects.get(name=value)
+#             return role
+#         except Role.DoesNotExist:
+#             raise serializers.ValidationError(f"Role '{value}' does not exist.")
+        
+
+#     def create(self, validated_data):
+#         role = validated_data.pop('role')  # This is the validated Role object
+#         password = validated_data.pop('password')
+        
+#         user = User(**validated_data)
+#         user.set_password(password)
+#         user.role = role
+        
+#         # Set is_staff to True for admin roles
+#         if role.name in ["System Administrator", "Client Administrator"]:
+#             user.is_staff = True
+        
+#         user.save()
+#         return user
+
+
+
+
+
+
+    # def create(self, validated_data):
+    #     role = validated_data.pop('role')  # This is the validated Role object
+    #     password = validated_data.pop('password')
+        
+    #     user = User(**validated_data)
+    #     user.set_password(password)
+    #     user.role = role
+    #     user.save()
+    #     return user
+#     class Meta:
+#         model = User
+#         fields = ['username', 'email', 'password']
+
+#     def create(self, validated_data):
+#         user = User.objects.create_user(
+#             username=validated_data['username'],
+#             email=validated_data['email'],
+#             password=validated_data['password']
+#         )
+#         return user
