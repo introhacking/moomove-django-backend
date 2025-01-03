@@ -79,7 +79,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
     # Third-party middleware for Allauth (Google login)
-    # 'allauth.account.middleware.AccountMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     
     # Custom middleware, placed after authentication to ensure user context is available
     'uauth.middleware.AuditMiddleware',
