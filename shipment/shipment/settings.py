@@ -79,7 +79,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
     # Third-party middleware for Allauth (Google login)
-    'allauth.account.middleware.AccountMiddleware',
+    # 'allauth.account.middleware.AccountMiddleware',
     
     # Custom middleware, placed after authentication to ensure user context is available
     'uauth.middleware.AuditMiddleware',
@@ -100,7 +100,7 @@ CORS_ALLOWED_ORIGINS = [
     
     # Add other allowed origins as needed
     f'{config["HOST_URL"]}',    # TEST FOR AWS 
-    f'http://{config["HOST_IP"]}',    # TEST
+    f'http://{config["HOST_IP"]}'    # TEST
     
 ] 
 
@@ -134,31 +134,37 @@ ROOT_URLCONF = 'shipment.urls'
 # Authentication backends
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend',  # For Google login
+    # 'allauth.account.auth_backends.AuthenticationBackend',  # For Google login
 )
 
 # Google OAuth settings
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'offline'},
-    }
-}
+# SOCIALACCOUNT_PROVIDERS = {
+#     'google': {
+#         'SCOPE': ['profile', 'email'],
+#         'AUTH_PARAMS': {'access_type': 'offline'},
+#     }
+# }
 
 # Google credentials
-# SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '728042667394-qkktvjnbte5a30a9j35u8u5c3ps53tnu.apps.googleusercontent.com'
-# SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=f'{config["SOCIAL_AUTH_GOOGLE_OAUTH2_KEY"]}'
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=f'{config["SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET"]}'
+# SOCIALACCOUNT_PROVIDERS = {
+#     'google': {
+#          'SCOPE': ['profile', 'email'],
+#         'AUTH_PARAMS': {'access_type': 'online'},
+        
+#         'APP': {
+#             'client_id': f'{config["GOOGLE_CLIENT_ID"]}',
+            
+#             'secret': f'{config["GOOGLE_SECRET_KEY"]}',
+            
+#             'key': ''
+#  }
+#  }
+# }
 
+# LOGIN_REDIRECT_URL = f'{config["LOGIN_REDIRECT_URL"]}'
+# redirect_uri = f'{config["GOOGLE_REDIRECT_URI"]}'
+# LOGOUT_REDIRECT_URL = f'{config["LOGOUT_REDIRECT_URL"]}'
 
-LOGIN_REDIRECT_URL=f'{config["LOGIN_REDIRECT_URL"]}'
-SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI=f'{config["SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI"]}'
-LOGOUT_REDIRECT_URL = f'{config["LOGOUT_REDIRECT_URL"]}'
-# LOGIN_REDIRECT_URL = '/dashboard/'
-# # SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://testmoomoveui.s3-website.ap-south-1.amazonaws.com/accounts/google/login/callback/'  # Redirect after successful login
-# SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://localhost:4200/dashboard/'  # Redirect after successfull login
-# LOGOUT_REDIRECT_URL = '/'
 
 # DATABASE CONNECTION HERE
 DATABASES = {
