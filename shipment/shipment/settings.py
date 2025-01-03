@@ -134,7 +134,7 @@ ROOT_URLCONF = 'shipment.urls'
 # Authentication backends
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
-    # 'allauth.account.auth_backends.AuthenticationBackend',  # For Google login
+    'allauth.account.auth_backends.AuthenticationBackend',  # For Google login
 )
 
 # Google OAuth settings
