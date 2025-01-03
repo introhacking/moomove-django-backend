@@ -231,7 +231,7 @@ class Registration(models.Model):
 # ACTIVITY LOG 
 # 30/Dec/2024
 class ActivityLog(models.Model):
-    user = models.ForeignKey(
+    user_id = models.ForeignKey(
         settings.AUTH_USER_MODEL,  # Dynamically points to the custom user model
         on_delete=models.CASCADE,
         related_name='activity_logs',

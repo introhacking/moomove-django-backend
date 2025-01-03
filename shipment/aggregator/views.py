@@ -1640,7 +1640,7 @@ class ActivityLogView(APIView):
                 
                 # Create an activity log linked to the logged-in user
                 ActivityLog.objects.create(
-                    user=request.user,
+                    user_id=request.user,
                     action_type=requestData.get('action_type'),
                     action_status=requestData.get('action_status'),
                     description=requestData.get('description'),

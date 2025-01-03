@@ -224,7 +224,7 @@ class ActivityLogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ActivityLog
-        fields = ['id', 'user', 'action_type', 'action_status', 'source', 'destination', 'description','created_at']
+        fields = ['id', 'user_id', 'action_type', 'action_status', 'source', 'destination', 'description','created_at']
 
 
 # class ActivityLogSerializer(serializers.Serializer):
