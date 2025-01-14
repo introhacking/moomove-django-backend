@@ -167,44 +167,6 @@ class UserVerificationSerializer(serializers.ModelSerializer):
         fields = ['id', 'is_verified']
         read_only_fields = ['id']
 
-# class GoogleLoginSerializer(serializers.Serializer):
-#     google_id_token = serializers.CharField()
-
-#     def validate(self, attrs):
-#         google_id_token = attrs.get('google_id_token')
-
-#         # Send a request to Google to verify the token
-#         response = requests.post(
-#             'https://oauth2.googleapis.com/tokeninfo?id_token=' + google_id_token
-#         )
-
-#         if response.status_code != 200:
-#             raise serializers.ValidationError("Invalid Google ID Token.")
-
-#         user_info = response.json()
-
-#         # Extract necessary information from Google response (such as email, name)
-#         google_email = user_info.get('email')
-#         google_name = user_info.get('name')
-
-#         # Check if the user already exists
-#         user = User.objects.filter(email=google_email).first()
-
-#         if not user:
-#             # If user doesn't exist, create a new user without a password
-#             user = User.objects.create_user_from_google(
-#                 email=google_email,
-#                 name=google_name
-#             )
-
-#             # Optionally, you can assign a default role here
-#             default_role = RoleType.objects.filter(role_name="User").first()  # assuming "user" is a default role
-#             user.role = default_role
-#             user.save()
-
-#         attrs['User'] = user  # Attach the user object to the validated data
-#         return attrs
-
 class GoogleLoginSerializer(serializers.Serializer): 
     google_id_token = serializers.CharField()
 

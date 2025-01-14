@@ -26,11 +26,6 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 #from rest_framework_social_oauth2.views import ConvertTokenView
 from rest_framework.permissions import AllowAny
-# from social_django.utils import load_strategy, load_backend
-# from social_core.exceptions import AuthException
-#import logging
-# logger = logging.getLogger(__name__)
-
 
 def get_tokens_for_user(user):
   refresh = RefreshToken.for_user(user)
@@ -39,87 +34,6 @@ def get_tokens_for_user(user):
       'access': str(refresh.access_token),
   }
 
-# key = Fernet.generate_key()
-# print(f'Generated Key: {key.decode()}')
-
-# cipher_suite = Fernet(key)
-
-# #new added 23 dec
-# class GoogleLoginView(ConvertTokenView):
-#     permission_classes = [AllowAny]
-
-#new added 24 dec
-# class GoogleLoginAPIView(APIView):
-#     permission_classes = [AllowAny]
-
-#     def post(self, request):
-#         oauth_token = request.data.get('oauth_token')
-
-#         if not oauth_token:
-#             return Response({'error': 'OAuth token is required'}, status=400)
-
-#         strategy = load_strategy(request)
-#         backend = strategy.get_backend('google-oauth2')
-
-#         try:
-#             # Authenticate the user with Google
-#             user = backend.do_auth(oauth_token)
-#             if user:
-#                 login(request, user)  # Log the user in
-#                 refresh = RefreshToken.for_user(user)
-#                 access_token = refresh.access_token
-
-#                 return Response({
-#                     "status": True,
-#                     "message": "Google login successful",
-#                     "token": {
-#                         "refresh": str(refresh),
-#                         "access": str(access_token),
-#                     },
-#                     "user": {
-#                         "id": user.id,
-#                         "email": user.email,
-#                         "name": user.get_full_name(),
-#                     },
-#                 }, status=200)
-#             else:
-#                 return Response({'error': 'Authentication failed'}, status=401)
-#         except Exception as e:
-#             return Response({'error': str(e)}, status=400)
-
-# class ForgotPasswordView(APIView):
-#     def post(self, request):
-#         serializer = ForgotPasswordSerializer(data=request.data)
-#         if serializer.is_valid():
-#             email = serializer.validated_data.get('email')
-#             try:
-#                 user = User.objects.get(email=email)
-#                 send_opt_via_email(email)
-#                 return Response({'message': 'OTP sent successfully.'}, status=status.HTTP_200_OK)
-#             except User.DoesNotExist:
-#                 return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# class PasswordResetView(APIView):
-#     def post(self, request):
-#         serializer = PasswordResetSerializer(data=request.data)
-#         if serializer.is_valid():
-#             email = serializer.validated_data.get('email')
-#             otp = serializer.validated_data.get('otp')
-#             password1 = serializer.validated_data.get('password1')
-#             password2 = serializer.validated_data.get('password2')
-#             try:
-#                 user = User.objects.get(email=email)
-#                 if user.otp != otp:
-#                     return Response({'error': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
-#                 if password1 != password2:
-#                     return Response({'error': 'Passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
-#                 user.set_password(password1)
-#                 user.save()
-#                 return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
-#             except User.DoesNotExist:
-#                 return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 #new added 31 dec
 class ForgotPasswordView(APIView):
@@ -256,27 +170,9 @@ class UserLoginView(APIView):
             "user": user_data,
         }, status=status.HTTP_200_OK)
 
-#new added 25 dec
-# class GoogleLoginView(APIView):
-#     def post(self, request):
-#         serializer = GoogleLoginSerializer(data=request.data)
-#         if serializer.is_valid():
-#             user = serializer.validated_data['User']
-#             # You can create a token here or use your authentication method
-#             return Response({
-#                 'user_id': user.id,
-#                 'email': user.email,
-#                 'name': user.name,
-#                 'role': user.role.role_name if user.role else 'No Role',
-#                 'message': 'Google login successful'
-#             }, status=status.HTTP_200_OK)
-
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 #new added 31 dec
-
 User = get_user_model()
-
 # Helper function to generate JWT tokens
 def generate_tokens(user):
     refresh = RefreshToken.for_user(user)
@@ -285,28 +181,47 @@ def generate_tokens(user):
         'access': str(refresh.access_token),
     }
 
+#4/Jan/25
 class GoogleLoginView(APIView):
-    def post(self, request):
-        serializer = GoogleLoginSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            
-            # Generate tokens for the authenticated user
-            tokens = generate_tokens(user)
-            
-            # Include user data in the response
-            return Response({
-                'user_id': user.id,
-                'email': user.email,
-                'name': user.name,
-                'role': user.role.role_name if user.role else 'No Role',
-                'message': 'Google login successful',
-                'tokens': tokens  # JWT tokens for authentication
-            }, status=status.HTTP_200_OK)
-        
-        # Handle invalid data
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+    def post(self, request, *args, **kwargs):
+        auth_code = request.data.get("auth_code")
+        if not auth_code:
+            return Response({"error": "Authorization code is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Step 1: Exchange auth_code for tokens
+        token_url = "https://oauth2.googleapis.com/token"
+        data = {
+            "code": auth_code,
+            "client_id": "520618349440-in3h8j5u2e5ick0qcebethd1nlq288jb.apps.googleusercontent.com",
+            "client_secret": "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",
+            "redirect_uri": "http://127.0.0.1:8000/accounts/google/login/callback/",
+            "grant_type": "authorization_code",
+        }
+
+        token_response = requests.post(token_url, data=data)
+        if token_response.status_code != 200:
+            return Response({"error": "Failed to fetch tokens."}, status=status.HTTP_400_BAD_REQUEST)
+
+        tokens = token_response.json()
+        id_token = tokens.get("id_token")
+
+        # Step 2: Validate the ID token
+        validation_url = "https://oauth2.googleapis.com/tokeninfo"
+        validation_response = requests.get(validation_url, params={"id_token": id_token})
+
+        if validation_response.status_code != 200:
+            return Response({"error": "Invalid ID token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_info = validation_response.json()
+
+        # Step 3: Process the user info (e.g., log in or register)
+        email = user_info.get("email")
+        if not email:
+            return Response({"error": "Invalid user information."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Handle your user authentication logic here
+        return Response({"message": "Google login is valid.", "user": user_info}, status=status.HTTP_200_OK)
+      
     
 class UserLogoutView(generics.GenericAPIView):
     serializer_class = LogoutSerializer
@@ -370,33 +285,6 @@ class UpdateUserVerificationView(generics.UpdateAPIView):
             'data': serializer.data
         }, status=status.HTTP_200_OK)
 
-# class UserLogoutView(generics.GenericAPIView):
-#     serializer_class = LogoutSerializer
-#     permission_classes = [IsAuthenticated]
-
-#     def post(self, request, format=None):
-#         serializer = self.serializer_class(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-        
-#         try:
-#             # Blacklist the refresh token
-#             refresh_token = serializer.validated_data.get('refresh_token')
-#             RefreshToken(refresh_token).blacklist()
-#             return Response({"status": True, "message": "Logout successful"}, status=status.HTTP_200_OK)
-#         except Exception as e:
-#             return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
-
-# class PermissionsViewSet(viewsets.ModelViewSet):
-#     queryset = Permissions.objects.all()
-#     serializer_class = PermissionsSerializer
-    
-#     def get_permissions(self):
-#         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-#             permission_classes = [IsAuthenticated, IsSystemOrClientAdmin]
-#         else:
-#             permission_classes = []
-#         return [permission() for permission in permission_classes]
 
 #new added 10-12-2024
 class PermissionsViewSet(viewsets.ModelViewSet):
@@ -420,18 +308,6 @@ class PermissionsViewSet(viewsets.ModelViewSet):
             return Permissions.objects.filter(role=user.role)  # Filter by user role
         return Permissions.objects.none()
 
-
-# class RoleTypeViewSet(viewsets.ModelViewSet):
-#     queryset = RoleType.objects.all()
-#     serializer_class = RoleTypeSerializer
-    
-#     def get_permissions(self):
-#         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-#             permission_classes = [IsAuthenticated, IsAdminUser]
-#         else:
-#             permission_classes = []
-#         return [permission() for permission in permission_classes]
-
 #new added
 class RoleTypeViewSet(viewsets.ModelViewSet):
     queryset = RoleType.objects.all()
@@ -451,316 +327,6 @@ class RoleTypeViewSet(viewsets.ModelViewSet):
         elif user.role.role_name == "Client Administrator":
             return RoleType.objects.filter(company=user.company)  # Client Admin sees Role Types related to their company
         return RoleType.objects.none()  # Return no Role Types for other users
-
-    
-# class CustomerViewSet(viewsets.ReadOnlyModelViewSet):
-#     """
-#     A viewset that provides `list`, `retrieve`, and `delete` actions for Customer.
-#     """
-#     queryset = Customer.objects.all()
-#     serializer_class = CustomerSerializer1
-#     permission_classes = [IsAuthenticated]  # Optional: Restrict to authenticated users
-
-#     def get_queryset(self):
-#         """
-#         Optionally customize the queryset if needed (e.g., filter by user/customer).
-#         """
-#         return super().get_queryset()
-
-#     def destroy(self, request, *args, **kwargs):
-#         """
-#         Allow deletion of a customer.
-#         """
-#         return super().destroy(request, *args, **kwargs)
-# class GenerateLicenseKeyView(APIView):
-#     permission_classes = [IsAuthenticated, IsAdminUser]
-#     serializer_class = LicenseKeyGenerationSerializer
-
-#     def post(self, request, *args, **kwargs):
-#         serializer = LicenseKeyGenerationSerializer(data=request.data)
-#         if serializer.is_valid():
-#             duration = serializer.validated_data['duration']
-#             try:
-#                 # Generate license key
-#                 license_key = generate_license_key()
-
-#                 # Calculate the expiration date based on the duration
-#                 if duration == '3':
-#                     valid_months = 3
-#                 elif duration == '6':
-#                     valid_months = 6
-#                 elif duration == '12':
-#                     valid_months = 12
-#                 else:
-#                     return Response({"error": "Invalid duration"}, status=status.HTTP_400_BAD_REQUEST)
-
-#                 expiration_date = datetime.now() + timedelta(days=30 * valid_months)
-
-#                 # Create a file with the license details
-#                 file_content = f"License Key: {license_key}\nValid Until: {expiration_date.strftime('%Y-%m-%d')}"
-#                 cipher_suite = settings.CIPHER_SUITE
-
-#                 # Encrypt the file content
-#                 encrypted_content = cipher_suite.encrypt(file_content.encode('utf-8'))
-
-#                 # Create a unique filename for the encrypted file
-#                 file_name = f"license_key_{license_key}.txt"
-
-#                 # Save the encrypted file to the media directory
-#                 file_path = default_storage.save(f"licenses/{file_name}", ContentFile(encrypted_content))
-
-#                 # Construct the full URL for the saved file
-#                 file_url = request.build_absolute_uri(f"/media/{file_path}")
-
-#                 # Optional: Save to LicenseTier model without requiring a tier_id
-#                 LicenseTier.objects.create(license_file=file_path)
-
-#                 return Response({"message": "License key generated and saved successfully", "file_url": file_url}, status=status.HTTP_200_OK)
-
-#             except Exception as e:
-#                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# class CustomerCreationView(APIView):
-#     permission_classes = [IsAuthenticated, IsAdminUser]
-#     serializer_class = CustomerSerializer
-
-#     def post(self, request, *args, **kwargs):
-#         file = request.FILES.get('file')
-#         if not file:
-#             return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         try:
-#             cipher_suite = settings.CIPHER_SUITE
-
-
-#             # Read and decrypt file content
-
-#             # Read and decrypt file content
-#             encrypted_file_content = file.read()
-#             decrypted_file_content = cipher_suite.decrypt(encrypted_file_content).decode('utf-8')
-#             print("Decrypted file content:", decrypted_file_content)
-
-#             # Split the content by lines
-#             lines = decrypted_file_content.splitlines()
-
-#             # Extract license key and validity date
-#             license_key = lines[0].split(': ')[1]  # Assuming format "License Key: <key>"
-#             license_valid_upto = pd.to_datetime(lines[1].split(': ')[1]).date()  # Assuming format "Valid Until: <date>"
-
-#             # Process other form data
-#             org_name = request.data.get('org_name')
-#             org_location = request.data.get('org_location')
-
-#             # Create a Customer instance
-#             customer = Customer(
-#                 org_name=org_name,
-#                 org_location=org_location,
-#                 license_key=license_key,
-#                 license_valid_upto=license_valid_upto
-#             )
-#             customer.save()
-
-#             return Response({"message": "Customer created successfully"}, status=status.HTTP_201_CREATED)
-#         except Exception as e:
-#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# class LicenseAndCustomerCreationView(APIView):
-#     permission_classes = [IsAuthenticated, IsAdminUser]
-
-#     def post(self, request, *args, **kwargs):
-#         # Step 1: Generate the license key
-#         license_key = generate_license_key()
-
-#         # Step 2: Create LicenseTier with the generated key
-#         license_tier_data = request.data.get('license_tier', {})
-#         license_tier_data['key'] = license_key  # Set the generated license key
-
-#         license_tier_serializer = LicenseTierSerializer(data=license_tier_data)
-#         if license_tier_serializer.is_valid():
-#             license_tier = license_tier_serializer.save()
-
-#             # Step 3: Create Customer
-#             customer_data = request.data.get('customer', {})
-#             customer_data['license_tier'] = license_tier.id  # Associate with created LicenseTier
-#             customer_serializer = CustomerSerializer(data=customer_data)
-
-#             if customer_serializer.is_valid():
-#                 customer_serializer.save()  # Save Customer
-#                 return Response({
-#                     "message": "LicenseTier and Customer created successfully",
-#                     "license_tier": license_tier_serializer.data,
-#                     "customer": customer_serializer.data
-#                 }, status=status.HTTP_201_CREATED)
-
-#             return Response(customer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#         return Response(license_tier_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# class CustomerViewSet(viewsets.ModelViewSet):
-#     """
-#     A viewset that provides `list`, `retrieve`, `create`, and `delete` actions for Customer.
-#     The `create` method also creates a LicenseTier with a generated key.
-#     """
-#     queryset = Customer.objects.all()
-#     permission_classes = [IsAuthenticated, IsAdminUser]
-
-#     def get_serializer_class(self):
-#         """
-#         Use `CustomerSerializer1` for list and retrieve actions.
-#         Use `CustomerSerializer` for create and other actions.
-#         """
-#         if self.action in ['list', 'retrieve']:
-#             return CustomerSerializer1
-#         elif self.action in ['create', 'update', 'partial_update']:
-#             return CustomerSerializer
-#         return super().get_serializer_class()
-#     def list(self, request, *args, **kwargs):
-#         """
-#         Custom response for the list action.
-#         """
-#         queryset = self.get_queryset()
-#         customer_data = []
-        
-#         for customer in queryset:
-#             # Serialize the customer
-#             customer_serializer = self.get_serializer(customer)
-#             # Extracting license tier information
-#             license_tier = customer.license_tier  # Assuming a ForeignKey relationship
-            
-#             # Prepare the license tier data
-#             if license_tier:  # Check if license_tier is not None
-#                 license_info = {
-#                     "tier_name": license_tier.tier_name,  # Assuming license_tier has tier_name field
-#                     "duration": license_tier.duration  # Assuming license_tier has duration field
-#                 }
-#             else:
-#                 license_info = {
-#                     "tier_name": None,  # Or you can set a default value or message
-#                     "duration": None
-#                 }
-
-#             customer_info = {
-#                 "id":customer_serializer.data['id'],
-#                 "license_tier": license_info,
-#                 "customer": {
-#                     "org_name": customer_serializer.data['org_name'],
-#                     "org_location": customer_serializer.data['org_location']
-#                 }
-#             }
-#             customer_data.append(customer_info)
-
-#         return Response({
-#             "message": "Customer list retrieved successfully",
-#             "customers": customer_data,
-#             "total_count": queryset.count(),
-#         }, status=status.HTTP_200_OK)
-
-#     def retrieve(self, request, *args, **kwargs):
-#         """
-#         Custom response for the retrieve action.
-#         """
-#         instance = self.get_object()
-#         customer_serializer = self.get_serializer(instance)
-
-#         # Extracting license tier information
-#         license_tier = instance.license_tier  # Assuming a ForeignKey relationship
-
-#         response_data = {
-#             "license_tier": {
-#                 "tier_name": license_tier.tier_name,  # Assuming license_tier has tier_name field
-#                 "duration": license_tier.duration  # Assuming license_tier has duration field
-#             },
-#             "customer": {
-#                 "org_name": customer_serializer.data['org_name'],
-#                 "org_location": customer_serializer.data['org_location']
-#             }
-#         }
-
-#         return Response({
-#             "message": "Customer details retrieved successfully",
-#             "customers": response_data
-#         }, status=status.HTTP_200_OK)
-    
-#     def create(self, request, *args, **kwargs):
-#         """
-#         Create LicenseTier and Customer together.
-#         """
-#         # Step 1: Generate the license key
-#         license_key = generate_license_key()
-
-#         # Step 2: Create LicenseTier with the generated key
-#         license_tier_data = request.data.get('license_tier', {})
-#         license_tier_data['key'] = license_key  # Set the generated license key
-
-#         license_tier_serializer = LicenseTierSerializer(data=license_tier_data)
-#         if license_tier_serializer.is_valid():
-#             license_tier = license_tier_serializer.save()
-
-#             # Step 3: Create Customer
-#             customer_data = request.data.get('customer', {})
-#             customer_data['license_tier'] = license_tier.id  # Associate with created LicenseTier
-#             customer_serializer = self.get_serializer(data=customer_data)
-
-#             if customer_serializer.is_valid():
-#                 customer_serializer.save()  # Save Customer
-#                 return Response({
-#                     "message": "LicenseTier and Customer created successfully",
-#                     "license_tier": license_tier_serializer.data,
-#                     "customer": customer_serializer.data
-#                 }, status=status.HTTP_201_CREATED)
-
-#             return Response(customer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#         return Response(license_tier_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-#     def update(self, request, *args, **kwargs):
-#         """
-#         Update LicenseTier and Customer together.
-#         """
-#         instance = self.get_object()
-#         license_tier = instance.license_tier  # Get the existing LicenseTier
-
-#         # Step 1: Update LicenseTier
-#         license_tier_data = request.data.get('license_tier', {})
-#         if 'key' in license_tier_data:
-#             # Optionally, do not allow updating the key
-#             license_tier_data.pop('key')  # Remove key if you don't want to change it
-
-#         license_tier_serializer = LicenseTierSerializer(license_tier, data=license_tier_data, partial=True)
-#         if license_tier_serializer.is_valid():
-#             license_tier_serializer.save()
-
-#             # Step 2: Update Customer
-#             customer_data = request.data.get('customer', {})
-#             customer_serializer = self.get_serializer(instance, data=customer_data, partial=True)
-
-#             if customer_serializer.is_valid():
-#                 customer_serializer.save()  # Save Customer
-#                 return Response({
-#                     "message": "LicenseTier and Customer updated successfully",
-#                     "license_tier": license_tier_serializer.data,
-#                     "customer": customer_serializer.data
-#                 }, status=status.HTTP_200_OK)
-
-#             return Response(customer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#         return Response(license_tier_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#     def partial_update(self, request, *args, **kwargs):
-#         """
-#         Handle PATCH requests. Delegates to the update method.
-#         """
-#         return self.update(request, *args, **kwargs)
-#     def destroy(self, request, *args, **kwargs):
-#         """
-#         Allow deletion of a customer.
-#         """
-#         return super().destroy(request, *args, **kwargs)
-
-
-
 
 class UserViewSet(viewsets.ModelViewSet):
     # permission_classes = [IsPSorAdminUser, IsAuthenticated]

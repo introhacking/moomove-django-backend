@@ -8,9 +8,6 @@ from .models import (
     AuditLog
 )
 
-
-# Custom admin for User model
-#new added 23 dec
 # @admin.register(User)
 # class UserAdmin(admin.ModelAdmin):
 #     list_display = ('name', 'email', 'mobile_number', 'is_org_admin', 'is_verified', 'is_active', 'is_admin', 'role')
@@ -19,23 +16,60 @@ from .models import (
 #     ordering = ('created_at',)
 #     readonly_fields = ('created_at', 'updated_at')
 
-# # Custom admin for RoleType model
-# @admin.register(RoleType)
-# class RoleTypeAdmin(admin.ModelAdmin):
-#     list_display = ('role_name', 'role_description')
-#     search_fields = ('role_name', 'role_description')
-#     filter_horizontal = ('role_permissions',)
+#     def get_role(self, obj):
+#         return obj.role.role_name if obj.role else None
+
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'mobile_number', 'is_org_admin', 'is_verified', 'is_active', 'is_admin', 'role')
-    search_fields = ('email', 'name', 'mobile_number')
-    list_filter = ('is_org_admin', 'is_verified', 'is_active', 'is_admin', 'role')
-    ordering = ('created_at',)
-    readonly_fields = ('created_at', 'updated_at')
+    list_display = (
+        'name', 
+        'email', 
+        'mobile_number', 
+        'get_role',  # Improved readability
+        'client', 
+        'is_org_admin', 
+        'is_verified', 
+        'is_active', 
+        'is_admin',
+    )
+    search_fields = ('email', 'name', 'mobile_number', 'client__client_name',)  # Add search functionality for client name
+    list_filter = (
+        'is_org_admin', 
+        'is_verified', 
+        'is_active', 
+        'is_admin', 
+        'role', 
+        'client__region',  # Added filtering by client region
+    )
+    ordering = ('-created_at',)  # Order by creation date (most recent first)
+    readonly_fields = ('created_at', 'updated_at',)
 
     def get_role(self, obj):
-        return obj.role.role_name if obj.role else None
+        """Get the role name for the user."""
+        return obj.role.role_name if obj.role else "No Role Assigned"
+
+    get_role.short_description = 'Role'  # Set the column name in the admin panel
+
+    def get_queryset(self, request):
+        """Override queryset to include related fields for performance."""
+        queryset = super().get_queryset(request)
+        return queryset.select_related('role', 'client')
+
+    fieldsets = (
+        ("Personal Information", {
+            'fields': ('name', 'email', 'mobile_number', 'otp')
+        }),
+        ("Role & Client Details", {
+            'fields': ('role', 'client')
+        }),
+        ("Status", {
+            'fields': ('is_verified', 'is_active', 'is_admin', 'is_org_admin', 'is_staff')
+        }),
+        ("Timestamps", {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
 
 # Custom admin for RoleType model
 @admin.register(RoleType)

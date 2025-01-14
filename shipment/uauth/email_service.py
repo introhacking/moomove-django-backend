@@ -8,25 +8,6 @@ from django.conf import settings
 from .models import User
 from email.message import EmailMessage 
 
-
-# def send_email(subject,to_email="",to_candidate="",html_body="",plain_text="",recipients=[]):
-#     msg=EmailMessage()
-#     msg['Subject']=subject
-#     msg['From']='adminbot@augtrans.com'
-#     if recipients:
-#         msg['To']=recipients
-#     else:
-#         msg['To']=to_email
-#     msg.set_content(plain_text)
-#     if html_body:
-#         msg.add_alternative(html_body,subtype='html')
-#     mailserver = smtplib.SMTP('smtp.office365.com',587)
-#     mailserver.ehlo()
-#     mailserver.starttls()
-#     mailserver.login('adminbot@augtrans.com','Orbit@2022')
-#     mailserver.send_message(msg)
-#     mailserver.quit()
-
 def send_email(subject, to_email="", to_candidate="", html_body="", plain_text="", recipients=[]):
 
         

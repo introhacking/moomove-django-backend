@@ -36,14 +36,17 @@ import uuid
 from dotenv import load_dotenv, dotenv_values
 from rest_framework.authtoken.models import Token
 
-# from .permissions import IsSystemAdmin, IsClientAdmin, IsClientUser
 from rest_framework.exceptions import ValidationError
 from uauth.serializers import *
 from uauth.models import *
 from uauth.views import *
 from uauth.role_permission import *
 from datetime import datetime, timedelta
+from django.utils.timezone import now
 from django.db.models import Q
+from django.db import transaction
+
+import json
 
 config={
     **dotenv_values('constant_env/.env.shared'),
@@ -62,124 +65,8 @@ config={
     description="Provide username and password to receive JWT access and refresh tokens."
 )
 
-
-# ROLE VIEWS
-# class RegisterView(APIView):
-#     permission_classes = [AllowAny]
-
-#     def post(self, request):
-#         serializer = RegisterSerializer(data=request.data)
-#         if serializer.is_valid():
-#             user = serializer.save()
-
-#             # Generate a token for the user (optional if you're using Token Authentication)
-#             from rest_framework.authtoken.models import Token
-#             token = Token.objects.create(user=user)
-
-#             return Response({
-#                 "message": "User registered successfully",
-#                 "token": token.key
-#             })
-        
-#         return Response(serializer.errors, status=400)
-
-
-# class AdminDashboardView(APIView):
-#     permission_classes = [IsSystemAdmin]
-
-#     def get(self, request):
-#         return Response({"message": config['SYSTEM_MESSAGE']})
-
-# class ClientDashboardView(APIView):
-#     permission_classes = [IsClientAdmin]
-
-#     def get(self, request):
-#         return Response({"message": config['CLIENT_MESSAGE']})
-
-# class GenerateQuoteView(APIView):
-#     permission_classes = [IsClientUser]
-
-#     def post(self, request):
-#         return Response({"message": "Quote generated successfully!"})
-
-
-
-# @api_view(['POST' , 'GET'])
-# def login(request):
-#     serializer = UserSerializer(data=request.data)
-#     if serializer.is_valid():
-#         username = serializer.validated_data['username']
-#         password = serializer.validated_data['password']
-#         user = authenticate(request, username=username, password=password)
-#         if user is not None:
-#             refresh = RefreshToken.for_user(user)
-#             return Response({
-#                 'refresh': str(refresh),
-#                 'access': str(refresh.access_token),
-#             })
-#         else:
-#             return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# working below 
-
-# @api_view(['POST'])
-# def login(request):
-#     if request.method == 'POST':
-#         serializer = UserSerializer(data=request.data)
-#         if serializer.is_valid():
-#             username = serializer.validated_data['username']
-#             password = serializer.validated_data['password']
-#             user = authenticate(request, username=username, password=password)
-#             if user is not None:
-#                 refresh = RefreshToken.for_user(user)
-                
-#                 # Construct the response with username, email, and name (first_name + last_name)
-#                 return Response({
-#                     'refresh': str(refresh),
-#                     'access': str(refresh.access_token),
-#                     'userId': user.id,
-#                     'username': user.username,
-#                     'email': user.email,
-#                     # 'name': f"{user.first_name} {user.last_name}".strip(),  # Combine first and last name
-#                 }, status=status.HTTP_200_OK)
-#             else:
-#                 return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    # # Handle GET request to fetch superuser details
-    # if request.method == 'GET':
-    #     superusers = User.objects.filter(is_superuser=True)  # Query for superusers
-    #     for user in superusers:
-    #       print(user.username, user.email)
-    #     print("Superusers:", superusers)  # Debugging print to check data
-    #     serializer = UserSerializer(superusers, many=True)
-    #     print("Serialized data:", serializer.data)  # Debugging print to check serialized data
-    #     return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
-# working below 
-
-# class UserLogoutView(generics.GenericAPIView):
-#     serializer_class=LogoutSerializer
-#     permission_classes = [IsAuthenticated]
-#     def post(self,request,format=None):
-#         serializer=self.serializer_class(data=request.data)
-#         # https://github.com/jazzband/djangorestframework-simplejwt/issues/218
-#         serializer.is_valid(raise_exception=True)
-#         # message = serializer.data['refresh_token']
-#         # message_bytes = message.encode('ascii')
-#         # base64_bytes = base64.b64encode(message_bytes)
-#         RefreshToken(serializer.data['refresh_token']).blacklist()
-
-#         return Response({"status":True},status=status.HTTP_200_OK)
-
-
-
 class ImportExcelData(APIView):
     permission_classes=[IsAuthenticated,IsSystemOrClientAdmin|IsClientUserEditAndRead]
-    # permission_classes=[IsAuthenticated]
 
     def post(self, request, format=None):
         file_obj = request.FILES.get('file')  # Assuming file is sent in the request
@@ -187,11 +74,17 @@ class ImportExcelData(APIView):
             return Response({"error": config['ERROR_UPLOADING']}, status=status.HTTP_400_BAD_REQUEST)
 
         company_id = request.data.get('company_id')
+        client_id = request.data.get('client_id')  # Extract client_id from the request
+
         if not company_id:
             return Response({"error": config['ID_REQUIRED']}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not client_id:
+            return Response({"error": "Client ID is required"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             # company = Company.objects.get(id=company_id)  # by manish
-            company = ClientTemplateCompany.objects.get(id=company_id)
+            # Validate that the company belongs to the provided client_id
+            company = ClientTemplateCompany.objects.filter(id=company_id, client_id=client_id).first()
 
             required_columns = ["Origin Port", "Destination Port", "Transit\ntime", "20'GP", "40'HC", "Effective Date", "Expiration Date"]
             sheets_to_read = ['F.E', 'E.Africa', 'Gulf-Red Sea']  # Adjust sheet names as per your Excel file
@@ -210,8 +103,8 @@ class ImportExcelData(APIView):
                 df.rename(columns={"Transit\ntime": "Transit time"}, inplace=True)
 
                 # Convert "Destination Port" to uppercase
-                # df['Destination Port'] = df['Destination Port'].str.upper().str.replace('PORT', '').str.strip()
-                df['Destination Port'] = df['Destination Port'].str.replace('PORT', '').str.strip()
+                df['Destination Port'] = df['Destination Port'].str.upper().str.replace('PORT', '').str.strip()  # 4/Jan/2025
+                # df['Destination Port'] = df['Destination Port'].str.replace('PORT', '').str.strip()
 
                 # Convert Timestamps to string for JSON serialization
                 df['Effective Date'] = df['Effective Date'].apply(lambda x: x.strftime('%Y-%m-%d') if isinstance(x, datetime) else None)
@@ -249,7 +142,8 @@ class ImportExcelData(APIView):
                             company=company,
                             source=source,
                             destination=destination,
-                            freight_type=freight_type
+                            freight_type=freight_type,
+                            client_id=client_id 
                         ).first()
 
                         # Fetch all versions sorted by effective_date descending
@@ -257,7 +151,8 @@ class ImportExcelData(APIView):
                             company=company,
                             source=source,
                             destination=destination,
-                            freight_type=freight_type
+                            freight_type=freight_type,
+                            client_id=client_id 
                         ).order_by('-id')
                         for version in existing_versions:
                             print(f"Existing version found: {version}")
@@ -348,6 +243,13 @@ class ExtractWordTableView(APIView):
             file_obj = request.FILES['file']
 
             # Extract company ID from the request data
+            # company_id = request.data.get('company_id')
+
+            client_id = request.data.get('client_id')
+            if not client_id:
+                return JsonResponse({"error": "Client ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Extract company ID from the request data
             company_id = request.data.get('company_id')
             if not company_id:
                 return JsonResponse({"error": config['ID_REQUIRED']}, status=status.HTTP_400_BAD_REQUEST)
@@ -417,6 +319,11 @@ class ExtractWordTableView(APIView):
         return formatted_data
 
     def save_imported_data(self, results, company_id):
+        client_id = self.request.data.get('client_id')  # Assuming `client_id` is passed in the request
+
+        if not client_id:
+            raise ValueError("Client ID is required for filtering rates.")
+        
         freight_types = ["20'GP", "40'HC"]  # Define the freight types you are processing
 
         for item in results:
@@ -444,7 +351,8 @@ class ExtractWordTableView(APIView):
                         company=company,
                         source=source,
                         destination=destination,
-                        freight_type=freight_type
+                        freight_type=freight_type,
+                        client_id=client_id
                     ).first()
 
                     # Fetch all versions sorted by effective_date descending
@@ -452,7 +360,8 @@ class ExtractWordTableView(APIView):
                         company=company,
                         source=source,
                         destination=destination,
-                        freight_type=freight_type
+                        freight_type=freight_type,
+                        client_id=client_id
                     ).order_by('-id')
                     # Exclude the current existing_rate
                     if existing_rate:
@@ -515,74 +424,6 @@ class ExtractWordTableView(APIView):
                             expiration_date=expiration_date,
                             version=versioned_rate
                         )
-                    # if existing_rate:
-                    #     # Exclude the current existing_rate's version from existing_versions
-                    #     existing_versions = existing_versions.exclude(id=existing_rate.version.id)
-
-                    #     # Print existing versions for debugging
-                    #     for version in existing_versions:
-                    #         print(f"Existing version found: {version}")
-
-                    #     # Select the second latest version for mapping
-                    #     second_latest_version = existing_versions.first() if existing_versions.exists() else None
-                    #     print("second_latest_version:", second_latest_version)
-
-                    #     # Check if there are changes in rate value, effective date, or expiration date
-                    #     has_changes = (
-                    #         existing_rate.rate != rate_value or
-                    #         existing_rate.effective_date != effective_date or
-                    #         existing_rate.expiration_date != expiration_date
-                    #     )
-
-                    #     if has_changes:
-                    #         print("Inside has_changes")
-
-                    #         # Create a new versioned rate
-                    #         VersionedRate.objects.create(
-                    #             company=company,
-                    #             source=source,
-                    #             destination=destination,
-                    #             transit_time=transit_time,
-                    #             freight_type=freight_type,
-                    #             rate=rate_value,
-                    #             effective_date=effective_date,
-                    #             expiration_date=expiration_date,
-                    #             is_current=False
-                    #         )
-
-                    #         # Update the existing rate
-                    #         existing_rate.rate = rate_value
-                    #         existing_rate.effective_date = effective_date
-                    #         existing_rate.expiration_date = expiration_date
-                    #         if second_latest_version:
-                    #             existing_rate.version = second_latest_version
-
-                    #         existing_rate.save()
-                    # else:
-                    #     print("inside else")
-                    #     # Create new rate and version
-                    #     versioned_rate = VersionedRate.objects.create(
-                    #         company=company,
-                    #         source=source,
-                    #         destination=destination,
-                    #         transit_time=transit_time,
-                    #         freight_type=freight_type,
-                    #         rate=rate_value,
-                    #         effective_date=effective_date,
-                    #         expiration_date=expiration_date,
-                    #         is_current=True
-                    #     )
-                    #     Rate.objects.create(
-                    #         company=company,
-                    #         source=source,
-                    #         destination=destination,
-                    #         transit_time=transit_time,
-                    #         freight_type=freight_type,
-                    #         rate=rate_value,
-                    #         effective_date=effective_date,
-                    #         expiration_date=expiration_date,
-                    #         version=versioned_rate
-                    #         )
 
 class ExtractPDFTableView(APIView):
     permission_classes=[IsAuthenticated,IsSystemOrClientAdmin|IsClientUserEditAndRead]
@@ -677,10 +518,12 @@ class ExtractPDFTableView(APIView):
 
             # Extract company_id from request data or session if authenticated
             company_id = request.data.get('company_id')  # Adjust this based on how company_id is passed
+            client_id=request.data.get('client_id')# Adjust this based on how company_id is passed
+
 
             # Retrieve company instance based on company_id
             # company = Company.objects.get(id=company_id)  # Assuming Company model and id field exist   # by manish
-            company = ClientTemplateCompany.objects.get(id=company_id)  # Assuming Company model and id field exist
+            company = ClientTemplateCompany.objects.get(id=company_id,client_id=client_id)  # Assuming Company model and id field exist
 
             pdf_file = request.FILES['file']
             content = pdf_file.read()
@@ -822,7 +665,8 @@ class ExtractPDFTableView(APIView):
                                 company=company,
                                 source=source,
                                 destination=destination,
-                                freight_type=freight_type
+                                freight_type=freight_type,
+                                client_id=client_id 
                             ).first()
 
                             # Fetch all versions sorted by effective_date descending
@@ -830,7 +674,8 @@ class ExtractPDFTableView(APIView):
                                 company=company,
                                 source=source,
                                 destination=destination,
-                                freight_type=freight_type
+                                freight_type=freight_type,
+                                client_id=client_id 
                             ).order_by('-id')
                             for version in existing_versions:
                                 print(f"Existing version found1: {version}")
@@ -918,8 +763,17 @@ class RateWithVersionsAPIView(APIView):
     def get(self, request, company_id):
         # print("company_id: ", company_id)
         try:
+             # Get the logged-in user's client
+            user_client = request.user.client
+
+            # Check if the user has a client associated
+            if not user_client:
+                return Response(
+                    {"error": "You are not associated with any client."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             # Fetch the latest rates (is_current=True) for the given company
-            rates = Rate.objects.filter(company_id=company_id,soft_delete=False)
+            rates = Rate.objects.filter(company_id=company_id,company__client_id=user_client.client_id, soft_delete=False)
             # rates = Rate.objects.filter(soft_delete=False)
             
             # rates = Rate.objects.filter(company_id=company_id, version__is_current=True)
@@ -947,7 +801,16 @@ class CompanyListAPIView(APIView):
     # permission_classes=[IsAuthenticated]
 
     def get(self, request):
-        companies = Company.objects.filter(soft_delete=False)
+        # Retrieve the user's client
+        client = request.user.client
+
+        # Filter companies based on the user's client_id
+        if client:
+            companies = Company.objects.filter(client_id=client.client_id, soft_delete=False)
+        else:
+            # If the user does not belong to a specific client, retrieve all companies (for admins)
+            companies = Company.objects.filter(soft_delete=False)
+
         serializer = CompanySerializer(companies, many=True)
         return Response(serializer.data)
 
@@ -963,101 +826,129 @@ class ClientTemplateCompanyAPIView(APIView):
     # permission_classes=[IsAuthenticated]
 
     def get(self, request):
-        companies = ClientTemplateCompany.objects.filter(soft_delete=False)
-        serializer = ClientTemplateCompanySerializer(companies, many=True)
-        return Response(serializer.data)
+        # Get the logged-in user's client
+            user_client = request.user.client
+
+            # Check if the user has a client associated
+            if not user_client:
+                return Response(
+                    {"error": "You are not associated with any client."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # Filter companies by client_id
+            companies = ClientTemplateCompany.objects.filter(
+                client_id=user_client.client_id, soft_delete=False
+            )
+            serializer = ClientTemplateCompanySerializer(companies, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        serializer = ClientTemplateCompanySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            # Include the user's client_id in the request data
+            client_id = request.user.client.client_id if request.user.client else None
+            if not client_id:
+                return Response(
+                    {"error": "You are not associated with any client."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # Attach the client_id to the request data
+            request.data["client_id"] = client_id
+            serializer = ClientTemplateCompanySerializer(data=request.data)
+
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
     
 class SourceListAPIView(APIView):
     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
     # permission_classes=[IsAuthenticated]
 
     def get(self, request):
-        sources = Source.objects.filter(soft_delete=False)
+        client_id = request.user.client_id  # Fetch the client_id from the logged-in user
+        sources = Source.objects.filter(soft_delete=False, client_id=client_id)
         serializer = SourceSerializer(sources, many=True)
         return Response(serializer.data)
 
     # def post(self, request):
-    #     serializer = CompanySerializer(data=request.data)
-    #     if serializer.is_valid():
-    #         serializer.save()
-    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #     try:
+    #         with transaction.atomic():
+    #             requestData = request.data
+    #             source_name = requestData.get('name')
 
+    #             # Check if a source with the same name already exists
+    #             existing_source = Source.objects.filter(name=source_name).first()
+    #             if existing_source:
+    #                 return Response({"message": f"'{source_name}' source already exists"}, status=status.HTTP_200_OK)
 
-    def post(self, request):
-        try:
-            with transaction.atomic():
-                requestData = request.data
-                source_name = requestData.get('name')
+    #             # Create a new source if it doesn't exist
+    #             Source.objects.create(name=source_name)
+    #             return Response({'message': f"'{source_name}' source successfully created"}, status=status.HTTP_201_CREATED)
 
-                # Check if a source with the same name already exists
-                existing_source = Source.objects.filter(name=source_name).first()
-                if existing_source:
-                    return Response({"message": f"'{source_name}' source already exists"}, status=status.HTTP_200_OK)
-
-                # Create a new source if it doesn't exist
-                Source.objects.create(name=source_name)
-                return Response({'message': f"'{source_name}' source successfully created"}, status=status.HTTP_201_CREATED)
-
-        except Exception as e:
-            return Response({'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #     except Exception as e:
+    #         return Response({'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DestinaltionListAPIView(APIView):
     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
     # permission_classes=[IsAuthenticated]
 
     def get(self, request):
-        destination = Destination.objects.filter(soft_delete=False)
+        client_id=request.user.client_id
+        destination = Destination.objects.filter(soft_delete=False,client_id=client_id)
         serializer = DestinationSerializer(destination, many=True)
         return Response(serializer.data)
     
 
-    def post(self, request):
-        try:
-            with transaction.atomic():
-                requestData = request.data
-                destination_name = requestData.get('name')
+    # def post(self, request):
+    #     try:
+    #         with transaction.atomic():
+    #             requestData = request.data
+    #             destination_name = requestData.get('name')
 
-                # Check if a destination with the same name already exists
-                existing_source = Destination.objects.filter(name=destination_name).first()
-                if existing_source:
-                    return Response({"message": f"'{destination_name}' destination already exists"}, status=status.HTTP_200_OK)
+    #             # Check if a destination with the same name already exists
+    #             existing_source = Destination.objects.filter(name=destination_name).first()
+    #             if existing_source:
+    #                 return Response({"message": f"'{destination_name}' destination already exists"}, status=status.HTTP_200_OK)
 
-                # Create a new destination if it doesn't exist
-                Destination.objects.create(name=destination_name)
-                return Response({'message': f"'{destination_name}' destination successfully created"}, status=status.HTTP_201_CREATED)
+    #             # Create a new destination if it doesn't exist
+    #             Destination.objects.create(name=destination_name)
+    #             return Response({'message': f"'{destination_name}' destination successfully created"}, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
-            return Response({'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #     except Exception as e:
+    #         return Response({'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 class FrightTypeListAPIView(APIView):
     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
     # permission_classes=[IsAuthenticated]
 
     def get(self, request):
-        freight_type = FreightType.objects.all()
+        client_id = request.user.client_id  # Fetch the client_id from the logged-in user
+        freight_type = FreightType.objects.filter(client_id=client_id)  # Filter by client_id
         serializer = FreightTypeSerializer(freight_type, many=True)
         return Response(serializer.data)
 
     def post(self, request):
         try:
+           client_id = request.user.client_id
            requestData = request.data
            freight_type = requestData.get('type')
            # Check if a FreightType with this type already exists
-           existing_freight_type = FreightType.objects.filter(type=freight_type).first()
+           existing_freight_type = FreightType.objects.filter(type=freight_type,client_id=client_id).first()
            if existing_freight_type:
                 # If the type already exists, return the message
                 return Response({"message": config['EXIST_DATA']}, status=status.HTTP_200_OK)
            
             # Otherwise, create a new FreightType instance
-           FreightType.objects.create(type=freight_type)
+           FreightType.objects.create(type=freight_type,client_id=client_id)
 
            return Response({'message': config['FREIGHT_TYPE_CREATED']}, status=status.HTTP_201_CREATED)
 
@@ -1073,65 +964,23 @@ class RateListView(generics.ListAPIView):
     def get_queryset(self):
         source_id = self.kwargs.get('source')
         destination_id = self.kwargs.get('destination')
+        client_id = self.request.user.client_id
 
         with connection.cursor() as cursor:
             # THIS IS STORE PRODUCER NAME IS "get_combined_rates_data" USE HERE 
-            cursor.execute("SELECT * FROM get_combined_rates_data(%s, %s)", [source_id, destination_id])
+            cursor.execute("SELECT * FROM get_combined_rates_data(%s, %s, %s)", [source_id, destination_id, client_id])
             rows = cursor.fetchall()
 
-            # columns = [
-            #     'id', 'unique_uuid', 'company_id', 'company_name', 'rate', 'currency',
-            #     'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
-            #     'expiration_date', 'un_number' ,'vessel_name', 'cargotype', 'voyage', 'hazardous', 'terms_condition', 'source_id', 'source_name', 'destination_id', 
-            #     'destination_name','transit_time_id','transit_time','freight_type_id','freight_type',
-            #     # 'client_template_id', 'client_template_name',
-            # ]
-            columns = config.get("RATE_LIST_QUERYSET" , "").split(",")
+            columns = [
+                'id', 'unique_uuid', 'company_id', 'company_name', 'rate', 'currency',
+                'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
+                'expiration_date', 'un_number' ,'vessel_name', 'cargotype', 'voyage', 'hazardous', 'terms_condition', 'source_id', 'source_name', 'destination_id', 
+                'destination_name','transit_time_id','transit_time','freight_type_id','freight_type', 'remarks'
+                # 'client_template_id', 'client_template_name',
+            ]
+            # columns = config.get("RATE_LIST_QUERYSET" , "").split(",")
             data = [dict(zip(columns, row)) for row in rows]
             return data  # Return as list of dictionaries for serialization
-
-    
-# class RateListView(generics.ListAPIView):
-    # permission_classes=[IsAuthenticated]
-
-    # serializer_class = RateSerializer1
-
-    # def get_queryset(self):
-    #     # Extract parameters from URL path variables
-    #     source_id = self.kwargs.get('source')
-    #     destination_id = self.kwargs.get('destination')
-    #     # freight_type_id = self.kwargs.get('freight_type')
-
-    #      # Call the stored procedure and fetch results
-    #     with connection.cursor() as cursor:
-    #         cursor.execute("SELECT * FROM get_combined_rates_data2(%s, %s)", [source_id, destination_id])
-    #         # Fetch all results
-    #         rows = cursor.fetchall()
-    #        # Manually map tuples to dictionaries
-    #         columns = [
-    #                 'id', 'company_id','rate', 'currency', 
-    #                 'free_days', 'spot_filed', 'transhipment_add_port', 
-    #                 'effective_date', 'vessel_name', 'source_id', 'destination_id'
-    #             ]
-    #         data = [dict(zip(columns, row)) for row in rows]
-    #         print(data)
-            
-      
-    #     return data    
-
-        # # Query Rate objects based on parameters
-        # rate_queryset = Rate.objects.filter(
-        #     source_id=source_id,
-        #     destination_id=destination_id,
-        #     soft_delete=False
-        #     # freight_type_id=freight_type_id
-        # )
-
-        # return rate_queryset
-
-
-
-
 
 class ManualRateWithRateWithVersionsAPIView(APIView):
     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly]
@@ -1140,7 +989,8 @@ class ManualRateWithRateWithVersionsAPIView(APIView):
     def get(self, request, company_id):
         # print("clienttemplatecompany_id: ", clienttemplatecompany_id)
         try:
-            manual_rates = ManualRate.objects.filter(company_id=company_id,soft_delete=False)
+            client_id = request.user.client_id  # Fetch the client_id from the logged-in user
+            manual_rates = ManualRate.objects.filter(company_id=company_id, client_id=client_id, soft_delete=False)
             manual_rates_serializer = ManualRateSerializer(manual_rates, many=True)
             return Response(manual_rates_serializer.data, status=status.HTTP_200_OK)
 
@@ -1150,12 +1000,18 @@ class ManualRateWithRateWithVersionsAPIView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class ManualRateListView(APIView):
-    permission_classes = [IsAuthenticated|IsClientUserEditAndRead|IsSystemAdministrator|IsClientAdministrator]
+    permission_classes = [IsAuthenticated|IsClientUserEditAndRead|IsSystemAdministrator|IsClientAdministrator|IsSystemOrClientAdmin]
     # permission_classes = [IsAuthenticated]
 
     #  FOR GET 
     def get(self, request):
-        manual_rate = ManualRate.objects.filter(soft_delete=False)  # Exclude soft-deleted records
+        # Fetch `client_id` from the request or user context
+        client_id = request.user.client_id  # Assuming `client_id` is associated with the user model
+        if not client_id:
+            return Response({"detail": "Client ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Filter records by `client_id` and exclude soft-deleted records
+        manual_rate = ManualRate.objects.filter(client_id=client_id, soft_delete=False)  # Exclude soft-deleted records
         manual_rate_serializer = ManualRateSerializer(manual_rate, many=True)
         return Response(manual_rate_serializer.data)
 
@@ -1165,7 +1021,11 @@ class ManualRateListView(APIView):
         try:
             with transaction.atomic():   
                 requestData = request.data
-                print(requestData)
+
+                 # Extract client_id
+                client_id = request.user.client_id
+                if not client_id:
+                    return Response({"detail": "Client ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
                 # Extract request data
                 company_name = requestData.get('company')
@@ -1175,6 +1035,8 @@ class ManualRateListView(APIView):
                 transit_time = requestData.get('transit_time')
                 commodity_name = requestData.get('cargotype')
                 manualrate = requestData.get('rate')
+                effectiveData = requestData.get('effective_date')
+                expirationData = requestData.get('expiration_date')
 
                 # Ensure required fields are provided
                 required_fields = [company_name, source_name, destination_name, freight_type, transit_time,manualrate]
@@ -1193,19 +1055,24 @@ class ManualRateListView(APIView):
 
                 # Check for existing records across ManualRate, VersionedRate, and Rate
                 filters = {
+                    'client_id': client_id,
                     'company': company_instance,
                     'source': source_instance,
                     'destination': destination_instance,
                     'freight_type': freight_type_instance,
                     'transit_time': transit_time_instance,
                     'cargotype': commodity_name_instance,
+                    'effective_date': effectiveData,
+                    'expiration_date': expirationData,
                     'rate': manualrate,
                     'soft_delete': False  # Exclude soft-deleted records
                 }
 
                 existing_manual_rate = ManualRate.objects.filter(**filters).first()
-                # existing_versioned_rate = VersionedRate.objects.filter(**filters).first()
-                # existing_rate = Rate.objects.filter(**filters).first()
+
+                # 14/JAN/25
+                # existing_manual_rate = ManualRate.objects.filter(**filters).exclude(
+                #     expiration_date=requestData.get('expiration_date')).first()
 
                 # If all values are the same in all tables, return a message saying 'Data already exists'
                 if existing_manual_rate:
@@ -1216,39 +1083,10 @@ class ManualRateListView(APIView):
                 # Generate a UUID and replace hyphens
                 unique_id = f"{timestamp}{str(uuid.uuid4()).replace('-', '')[:8]}"
                 common_uuid = unique_id[:24]
-
-                # # Create VersionedRate record
-                # versioned_rate = VersionedRate.objects.create(
-                #     unique_uuid=common_uuid,
-                #     company=company_instance,
-                #     source=source_instance,
-                #     destination=destination_instance,
-                #     freight_type=freight_type_instance,
-                #     transit_time=transit_time_instance,
-                #     cargotype=commodity_name_instance,
-                #     rate=requestData.get('rate'),
-                #     free_days=requestData.get('free_days'),
-                #     free_days_comment=requestData.get('free_days_comment'),
-                #     currency=requestData.get('currency'),
-                #     hazardous=requestData.get('hazardous'),
-                #     un_number=requestData.get('un_number'),
-                #     spot_filed=requestData.get('spot_filed'),
-                #     isRateTypeStatus=requestData.get('isRateTypeStatus'),
-                #     vessel_name=requestData.get('vessel_name'),
-                #     voyage=requestData.get('voyage'),
-                #     haz_class=requestData.get('haz_class'),
-                #     packing_group=requestData.get('packing_group'),
-                #     transhipment_add_port=requestData.get('transhipment_add_port'),
-                #     effective_date=requestData.get('effective_date'),
-                #     expiration_date=requestData.get('expiration_date'),
-                #     remarks=requestData.get('remarks'),
-                #     terms_condition=requestData.get('terms_condition'),
-                #     is_current=True
-                # )
-
-                # Create ManualRate record
-                manual_rate = ManualRate.objects.create(
+    
+                ManualRate.objects.create(
                     unique_uuid=common_uuid,
+                    client_id=client_id,
                     company=company_instance,
                     source=source_instance,
                     destination=destination_instance,
@@ -1273,38 +1111,7 @@ class ManualRateListView(APIView):
                     expiration_date=requestData.get('expiration_date'),
                     remarks=requestData.get('remarks'),
                     terms_condition=requestData.get('terms_condition'),
-                    # version=versioned_rate
                 )
-
-                # # Create Rate record
-                # Rate.objects.create(
-                #     unique_uuid=common_uuid,
-                #     company=company_instance,
-                #     source=source_instance,
-                #     destination=destination_instance,
-                #     freight_type=freight_type_instance,
-                #     transit_time=transit_time_instance,
-                #     cargotype=commodity_name_instance,
-                #     rate=requestData.get('rate'),
-                #     free_days=requestData.get('free_days'),
-                #     free_days_comment=requestData.get('free_days_comment'),
-                #     currency=requestData.get('currency'),
-                #     hazardous=requestData.get('hazardous'),
-                #     un_number=requestData.get('un_number'),
-                #     spot_filed=requestData.get('spot_filed'),
-                #     isRateTypeStatus=requestData.get('isRateTypeStatus'),
-                #     vessel_name=requestData.get('vessel_name'),
-                #     voyage=requestData.get('voyage'),
-                #     haz_class=requestData.get('haz_class'),
-                #     packing_group=requestData.get('packing_group'),
-                #     transhipment_add_port=requestData.get('transhipment_add_port'),
-                #     effective_date=requestData.get('effective_date'),
-                #     expiration_date=requestData.get('expiration_date'),
-                #     version=versioned_rate,
-                #     remarks=requestData.get('remarks'),
-                #     terms_condition=requestData.get('terms_condition'),
-                     
-                # )
 
                 return Response({'message': 'Manual rate processed successfully'}, status=status.HTTP_201_CREATED)
 
@@ -1319,9 +1126,16 @@ class ManualRateListView(APIView):
             with transaction.atomic():
                 requestData = request.data
 
+                 # Extract client_id
+                client_id = request.user.client_id
+                if not client_id:
+                    return Response({"detail": "Client ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Retrieve the existing ManualRate object
+
                 # Retrieve the existing ManualRate object
                 try:
-                    manual_rate_instance = ManualRate.objects.get(unique_uuid=unique_uuid)
+                    manual_rate_instance = ManualRate.objects.get(unique_uuid=unique_uuid, client_id=client_id)
                 except ManualRate.DoesNotExist:
                     return Response({"detail": "ManualRate not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1385,54 +1199,22 @@ class ManualRateListView(APIView):
 
     #  FOR DETELE
 
-    def delete(self, request, unique_uuid):
+    def delete(self, request, unique_uuid, client_id):
         try:
         # Start a transaction to ensure atomic updates
             with transaction.atomic():
                 # Retrieve all related records with the same unique_uuid
-                manual_rate_instance = ManualRate.objects.get(unique_uuid=unique_uuid, soft_delete=False)
-                # version_rate_instance = VersionedRate.objects.get(unique_uuid=unique_uuid, soft_delete=False)
-                # rate_instance = Rate.objects.get(unique_uuid=unique_uuid, soft_delete=False)
-                # company_instance = Company.objects.get(unique_uuid=unique_uuid, soft_delete=False)
-                # source_instance = Source.objects.get(unique_uuid=unique_uuid, soft_delete=False)
-                # destination_instance = Destination.objects.get(unique_uuid=unique_uuid, soft_delete=False)
-
+                manual_rate_instance = ManualRate.objects.get(unique_uuid=unique_uuid,client_id=client_id, soft_delete=False)
                 # Perform soft deletion for all records
                 manual_rate_instance.soft_delete = True
-                # version_rate_instance.soft_delete = True
-                # rate_instance.soft_delete = True
-                # company_instance.soft_delete = True
-                # source_instance.soft_delete = True
-                # destination_instance.soft_delete = True
-
                 # Save changes
                 manual_rate_instance.save()
-                # version_rate_instance.save()
-                # rate_instance.save()
-                # company_instance.save()
-                # source_instance.save()
-                # destination_instance.save()
+                
 
                 return Response({'message': 'Records soft-deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
         except ManualRate.DoesNotExist:
             return Response({"detail": "ManualRate not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # except VersionedRate.DoesNotExist:
-        #     return Response({"detail": "VersionedRate not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # except Rate.DoesNotExist:
-        #     return Response({"detail": "Rate not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # except Company.DoesNotExist:
-        #     return Response({"detail": "Company not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # except Source.DoesNotExist:
-        #     return Response({"detail": "Source not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # except Destination.DoesNotExist:
-        #     return Response({"detail": "Destination not found."}, status=status.HTTP_404_NOT_FOUND)
-
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
@@ -1443,29 +1225,17 @@ class UpadatingRateFrozenInfoListView(APIView):
     def put(self, request, unique_uuid):
         requestData = request.data
         isRateUsed = requestData.get('isRateUsed', None)
+        client_id = request.user.client_id  # Assuming `client_id` is associated with the authenticated user.
+
 
         if isRateUsed is None:
             return Response({"error": "isRateUsed field is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Fetch the ManualRate object (assuming unique_uuid refers to ManualRate's primary key)
         try:
-            manual_rate = ManualRate.objects.get(unique_uuid=unique_uuid)
+            manual_rate = ManualRate.objects.get(unique_uuid=unique_uuid, client_id=client_id)
         except ManualRate.DoesNotExist:
             return Response({"error": "ManualRate not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Fetch the related VersionedRate and Rate objects based on the correct relationship field
-        # try:
-        #     versioned_rate = VersionedRate.objects.get(manual_rate=manual_rate)  # Adjust if needed
-        #     rate = Rate.objects.get(manual_rate=manual_rate)  # Adjust if needed
-        # except (VersionedRate.DoesNotExist, Rate.DoesNotExist):
-        #     return Response({"error": "VersionedRate or Rate not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Update VersionedRate and Rate (common in both cases)
-        # versioned_rate.isRateUsed = isRateUsed
-        # versioned_rate.save()
-
-        # rate.isRateUsed = isRateUsed
-        # rate.save()
 
         # Update ManualRate
         manual_rate.isRateUsed = isRateUsed
@@ -1477,64 +1247,67 @@ class CustomerInfoListView(APIView):
     permission_classes = [IsAuthenticated,IsSystemOrClientAdmin|IsClientUserEditAndRead]
     # permission_classes = [IsAuthenticated]
 
-    #  FOR GET 
+    # FOR GET
     def get(self, request):
         try:
-            customer_info = CustomerInfo.objects.all()
+            client_id = request.user.client_id  # Assuming the user is associated with a client_id
+            customer_info = CustomerInfo.objects.filter(client_id=client_id)
             customer_info_serializer = CustomerInfoSerializer(customer_info, many=True)
             return Response(customer_info_serializer.data, status=status.HTTP_200_OK)
-        except CustomerInfo.DoesNotExist:
-            return Response({"error": "Something went wrong"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
     # FOR POST
     def post(self, request):
         try:
-           customer_serializer = CustomerInfoSerializer(data=request.data)
-           if customer_serializer.is_valid():
-              customer_serializer.save()
+            requestData = request.data
 
-            # requestData = request.data
-            # company_name = requestData.get('company_name')
-            # cust_name = requestData.get('cust_name')
-            # cust_email = requestData.get('cust_email')
-            # sales_represent = requestData.get('sales_represent')
-            # phone = requestData.get('phone')
-            # percentage = requestData.get('percentage')
-            # terms_condition = requestData.get('terms_condition')
-            
-            # CustomerInfo.objects.create(
-            # company_name=company_name,
-            # cust_name=cust_name,
-            # cust_email=cust_email,
-            # sales_represent=sales_represent,
-            # phone=phone,
-            # percentage=percentage,
-            # terms_condition=terms_condition,
-            # )
+            # Validate required fields
+            required_fields = ['company_name', 'cust_name', 'cust_email', 'sales_represent', 'phone', 'percentage', 'terms_condition']
+            for field in required_fields:
+                if not requestData.get(field):
+                    return Response({"error": f"{field} is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-              return Response({'message': 'Customer created successfully', 'data': customer_serializer.data}, status=status.HTTP_201_CREATED)
+            # Create the CustomerInfo instance
+            customer_serializer = CustomerInfo.objects.create(
+                client_id=request.user.client_id,  # Associate with the client's ID
+                company_name=requestData.get('company_name'),
+                cust_name=requestData.get('cust_name'),
+                cust_email=requestData.get('cust_email'),
+                sales_represent=requestData.get('sales_represent'),
+                phone=requestData.get('phone'),
+                percentage=requestData.get('percentage'),
+                terms_condition=requestData.get('terms_condition'),
+            )
 
-            
-        except Exception as err:
-            return Response({'details': str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'message': 'Customer created successfully' , 'data': customer_serializer.data}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     
      #  FOR UPDATE BY ID 
     def put(self, request,id):
             try:
                 requestData = request.data
-                try:
-                    customer_instance = CustomerInfo.objects.get(id=id)
-                except CustomerInfo.DoesNotExist:
-                    return Response({"detail": "Customer not found."}, status=status.HTTP_404_NOT_FOUND)
+                client_id = request.user.client_id  # Assuming the user is associated with a client_id
 
+                try:
+                    customer_instance = CustomerInfo.objects.get(id=id,client_id=client_id)
+                except CustomerInfo.DoesNotExist:
+                    return Response({"detail": "Customer not found or unauthorized access."}, status=status.HTTP_404_NOT_FOUND)
+
+                customer_instance.company_name= requestData.get('company_name', customer_instance.company_name)
+                customer_instance.cust_name= requestData.get('cust_name', customer_instance.cust_name)
+                customer_instance.sales_represent= requestData.get('sales_represent', customer_instance.sales_represent)
+                customer_instance.phone= requestData.get('phone', customer_instance.phone)
                 customer_instance.percentage= requestData.get('percentage', customer_instance.percentage)
+                customer_instance.terms_condition= requestData.get('terms_condition', customer_instance.terms_condition)
                
                  # Save changes
                 customer_instance.save()
                 # Return success response
-                return Response({"detail": "Customer percentage updated successfully."}, status=status.HTTP_200_OK) 
+                return Response({"detail": "Customer updated successfully."}, status=status.HTTP_200_OK) 
             
             except CustomerInfo.DoesNotExist:
                 return Response({"error": "Customer not found"}, status=status.HTTP_404_NOT_FOUND)  
@@ -1594,15 +1367,49 @@ class RegistrationInfoListView(APIView):
             
 class CommodityList(generics.ListCreateAPIView):
     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
-
-    queryset = Comodity.objects.all()
     serializer_class = CommoditySerializer
 
-class IncoTermList(generics.ListCreateAPIView):
-    permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
+    def get_queryset(self):
+        """
+        Filter the queryset to return data only relevant to the user's client or role.
+        """
+        user = self.request.user
+        if hasattr(user, 'client_id'):  # If user is associated with a client
+            return Comodity.objects.filter(client_id=user.client_id)
+        return Comodity.objects.all()  # Admins or system users can access all
 
-    queryset = IncoTerm.objects.all()
+    def perform_create(self, serializer):
+        """
+        Automatically associate the created commodity with the user's client, if applicable.
+        """
+        user = self.request.user
+        if hasattr(user, 'client_id'):
+            serializer.save(client_id=user.client_id)
+        else:
+            serializer.save()  # Save normally for admin/system users
+
+class IncoTermList(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser]
     serializer_class = IncoTermSerializer
+
+    def get_queryset(self):
+        """
+        Filter the queryset to return data only relevant to the user's client or role.
+        """
+        user = self.request.user
+        if hasattr(user, 'client_id'):  # If user is associated with a client
+            return IncoTerm.objects.filter(client_id=user.client_id)
+        return IncoTerm.objects.all()  # Admins or system users can access all
+
+    def perform_create(self, serializer):
+        """
+        Automatically associate the created inco term with the user's client, if applicable.
+        """
+        user = self.request.user
+        if hasattr(user, 'client_id'):
+            serializer.save(client_id=user.client_id)
+        else:
+            serializer.save()  # Save normally for admin/system users
 
 # ACTIVITY LOG FUNCTION
 
@@ -1640,7 +1447,7 @@ class ActivityLogView(APIView):
                 
                 # Create an activity log linked to the logged-in user
                 ActivityLog.objects.create(
-                    user_id=request.user,
+                    user=request.user,
                     action_type=requestData.get('action_type'),
                     action_status=requestData.get('action_status'),
                     description=requestData.get('description'),
@@ -1652,66 +1459,65 @@ class ActivityLogView(APIView):
         except Exception as err:
             return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# CLIENT INFO 
+# class ClientinfoViewSet(viewsets.ModelViewSet):
+#     serializer_class = ClientinfoSerializer
+#     permission_classes = permission_classes = [IsAuthenticated, IsSystemAdministrator]  # Restrict this to admin users
+#     queryset = Clientinfo.objects.all()
 
+class ClientinfoViewSet(APIView):
+    def post(self, request):
+        try:
+            # # Extract request data
+            requestData = request.data
 
-# class ActivityLogView(APIView):
-#     # permission_classes = [IsAuthenticated|IsSystemAdministrator]
-#     permission_classes = [IsAuthenticated]
+            # # Generate unique ID
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            company_name = requestData.get('company_name', '').strip()  # Ensure no leading/trailing spaces
+            if not company_name:
+                return Response({"error": "Company name is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-#     # def get(self, request):
-#     #     try:
-#     #         activitityLogList = ActivityLog.objects.all()
-#     #         activitityLogListSerializer = ActivityLogSerializer(activitityLogList, many=True)
-#     #         return Response(activitityLogListSerializer.data)
+            # Split company name into parts
+            company_name_parts = company_name.split()
+            if len(company_name_parts) == 0:
+                return Response({"error": "Invalid company name format"}, status=status.HTTP_400_BAD_REQUEST)
 
-#     #     except Exception as err:
-#     #         return Response("Something went wrong")  
+            # Capitalize the first word and format the rest
+            company_name_parts[0] = company_name_parts[0].capitalize()
+            formatted_company_name = "_".join([company_name_parts[0]] + [word.lower() for word in company_name_parts[1:]])
+            unique_id = f"{formatted_company_name}_{timestamp}"
 
+            # Extract other fields from request
+            clientName = requestData.get('client_name')
+            companyName = requestData.get('company_name')
+            email = requestData.get('email')
+            address = requestData.get('address')
+            phoneNo = requestData.get('phone_no')
+            invoicingCurrency = requestData.get('invoicing_currency')
+            reportingCurrency = requestData.get('reporting_currency')
+            region = requestData.get('region')
 
-#     def get(self, request):
-#         try:
-#             # Fetching filters from query parameters (if provided)
-#             recent_only = request.query_params.get('recent', 'false').lower() == 'true'
-#             user_id = request.query_params.get('user_id')  # Optional filter by user
+                # Validation for required fields
+                # if not all([client_name, email, address, phone_no, invoicing_currency, reporting_currency, region]):
+                #     return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-#             # If recent_only is enabled, fetch logs for the past 7 days (or modify this duration as needed)
-#             if recent_only:
-#                 seven_days_ago = datetime.now() - timedelta(days=7)
-#                 activitityLogList = ActivityLog.objects.filter(
-#                     Q(created_at__gte=seven_days_ago) &
-#                     (Q(userId=user_id) if user_id else Q())
-#                 ).order_by('-created_at')
-#             else:
-#                 activitityLogList = ActivityLog.objects.all().order_by('-created_at')
+                # Create an activity log linked to the logged-in user
+                # Uncomment this block to save the data
+            with transaction.atomic():    
+                Clientinfo.objects.create(
+                    client_id=unique_id,
+                    client_name=clientName,
+                    company_name=companyName,
+                    email=email,
+                    address=address,
+                    phone_no=phoneNo,
+                    invoicing_currency=invoicingCurrency,
+                    reporting_currency=reportingCurrency,
+                    region=region,
+                    created_at=now()
+                )
 
-#             activitityLogListSerializer = ActivityLogSerializer(activitityLogList, many=True)
-#             return Response(activitityLogListSerializer.data)
+            return Response({'message': unique_id}, status=status.HTTP_201_CREATED)
 
-#         except Exception as err:
-#             return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-#     def post(self, request):
-#         try:
-#             with transaction.atomic():
-#                 requestData = request.data
-#                 print(requestData)
-#                 userId = requestData.get('userId')
-#                 action_type = requestData.get('action_type')
-#                 action_status = requestData.get('action_status')
-#                 description = requestData.get('description')
-#                 source_id = requestData.get('source_id')
-#                 destination_id = requestData.get('destination_id')
-                
-#                 ActivityLog.objects.create(
-#                 userId=userId,
-#                 action_type=action_type,
-#                 action_status=action_status,
-#                 description=description,
-#                 source_id=source_id,
-#                 destination_id=destination_id,
-#                 )
-#             return Response({'message': 'Log created successfully'}, status=status.HTTP_201_CREATED)    
-
-#         except Exception as err:
-#             return Response("Something went wrong")        
+        except Exception as err:
+            return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

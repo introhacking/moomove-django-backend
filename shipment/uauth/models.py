@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.models import Permission
+from aggregator.models import Clientinfo
 # Gender choices for the PersonalDetails model
 GENDER_CHOICES = (
     ("M", "Male"),
@@ -40,79 +41,6 @@ class RoleType(models.Model):
     def __str__(self):
         return self.role_name
 
-
-# class UserManager(BaseUserManager):
-#     def create_user(self, email, name, password=None, **extra_fields):
-#         if not email:
-#             raise ValueError('The Email field must be set')
-#         email = self.normalize_email(email)
-#         user = self.model(email=email, name=name, **extra_fields)
-#         user.set_password(password)
-#         user.save(using=self._db)
-#         return user
-
-#     def create_superuser(self, email, name, password=None, **extra_fields):
-#         extra_fields.setdefault('is_admin', True)
-#         extra_fields.setdefault('is_staff', True)
-#         return self.create_user(email, name, password, **extra_fields)
-
-
-# class User(AbstractBaseUser):
-#     #email = models.EmailField(unique=True)
-#     email = models.EmailField(unique=True, null=False, blank=False, default="placeholder@example.com")
-
-#     name = models.CharField(max_length=255)
-#     mobile_number = models.CharField(max_length=15, blank=True, null=True)
-#     role = models.ForeignKey(RoleType, on_delete=models.SET_NULL, null=True, blank=True)
-#     is_verified = models.BooleanField(default=False)
-#     is_active = models.BooleanField(default=True)
-#     is_admin = models.BooleanField(default=False)
-#     is_org_admin = models.BooleanField(default=False)
-#     is_staff = models.BooleanField(default=False)  #new added
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     updated_at = models.DateTimeField(auto_now=True)
-
-#     USERNAME_FIELD = 'email'
-#     REQUIRED_FIELDS = ['name']
-
-#     objects = UserManager()
-
-#     def __str__(self):
-#         return self.email
-    
-#     def has_perm(self, perm, obj=None):
-#         """
-#         Return True if the user has the given permission. We are only considering superusers here.
-#         You can extend this to check for specific permissions assigned to this user.
-#         """
-#         # If the user is a superuser, they have all permissions
-#         if self.is_admin:
-#             return True
-
-#         # Implement additional permission logic here, e.g., checking custom permissions
-#         # Example: if user has a specific role that grants permission, return True
-#         if self.role == "admin":
-#             return perm == "can_manage_system"  # example permission check
-
-#         return False
-
-#     def has_module_perms(self, app_label):
-#         """
-#         Return True if the user has permissions for the given app_label. 
-#         For example, checking if the user has permissions for a specific app.
-#         """
-#         # If the user is a superuser, they have permissions for all modules
-#         if self.is_admin:
-#             return True
-
-#         # Implement more granular permission logic per app if necessary
-#         if self.role == "admin":
-#             # Example: Admin has access to a specific app (e.g., "shipping")
-#             if app_label == "shipment":
-#                 return True
-
-#         return False
-
 class UserManager(BaseUserManager):
     def create_user(self, email, name, password=None, **extra_fields):
         if not email:
@@ -143,6 +71,7 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):  # Added PermissionsMixin for Django permissions compatibility
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, null=True, blank=True,default='Grace_20250107173155')
     email = models.EmailField(unique=True, null=False, blank=False, default="placeholder@example.com")
     name = models.CharField(max_length=255)
     mobile_number = models.CharField(max_length=15, blank=True, null=True)

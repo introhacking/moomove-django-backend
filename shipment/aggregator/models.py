@@ -1,34 +1,78 @@
 from django.db import models
-# from sqlalchemy import DateTime
 from django.contrib.auth.models import AbstractUser
-
-
-# import uuid
-
 from django.utils import timezone    # new for search history
-# from datetime import timedelta       # new for search history
 from datetime import datetime
 from django.conf import settings
 
 
-class Source(models.Model):
-    unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False) 
-    name = models.CharField(max_length=100)
-    soft_delete = models.BooleanField(blank=True, null=True , default=False)
+# class Source(models.Model):
+#     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False) 
+#     name = models.CharField(max_length=100)
+#     soft_delete = models.BooleanField(blank=True, null=True , default=False)
 
-    def __str__(self):
+#     def __str__(self):
+#         return self.name
+
+# CLIENT INFO 
+# 07/Jan/2025
+class Clientinfo(models.Model):
+    client_id = models.CharField(max_length=255, primary_key=True)
+    client_name = models.CharField(max_length=100, unique=True)
+    company_name = models.CharField(max_length=100, unique=True)
+    email = models.EmailField(unique=True)
+    address = models.TextField()
+    phone_no = models.CharField(max_length=15)
+    invoicing_currency = models.CharField(max_length=10)
+    reporting_currency = models.CharField(max_length=10)
+    region = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+    deleted_at = models.DateTimeField(auto_now_add=True)
+
+    def _str_(self):
+        return self.client_name 
+
+class Source(models.Model):
+    unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
+    name = models.CharField(max_length=100, unique=True)  # Ensure source name is unique
+    soft_delete = models.BooleanField(blank=True, null=True, default=False)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='source',default='Grace_20250107173155')
+
+    def save(self, *args, **kwargs):
+        # Convert the name to uppercase before saving
+        if self.name:
+            self.name = self.name.upper()
+        super(Source, self).save(*args, **kwargs)
+
+    def _str_(self):
         return self.name
+
+
+# class Destination(models.Model):
+#     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
+#     name = models.CharField(max_length=100)
+#     soft_delete = models.BooleanField(blank=True, null=True , default=False)
+
+#     def __str__(self):
+#         return self.name
 
 class Destination(models.Model):
     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
-    name = models.CharField(max_length=100)
-    soft_delete = models.BooleanField(blank=True, null=True , default=False)
+    name = models.CharField(max_length=100, unique=True)  # Ensure destination name is unique
+    soft_delete = models.BooleanField(blank=True, null=True, default=False)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='destination',default='Grace_20250107173155')
 
-    def __str__(self):
-        return self.name
+    def save(self, *args, **kwargs):
+        # Convert the name to uppercase before saving
+        if self.name:
+            self.name = self.name.upper()
+        super(Destination, self).save(*args, **kwargs)
+
+    def _str_(self):
+        return self.name 
 
 class TransitTime(models.Model):
     time = models.CharField(max_length=50)  # Changed to CharField to handle ranges and float times
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='transitTime',default='Grace_20250107173155')
 
     def __str__(self):
         return self.time
@@ -36,7 +80,7 @@ class TransitTime(models.Model):
 class FreightType(models.Model):
     type = models.CharField(max_length=50)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
-
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='freightType',default='Grace_20250107173155')
 
     def __str__(self):
         return self.type
@@ -45,6 +89,8 @@ class Company(models.Model):
     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
     name = models.CharField(max_length=255)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='company',default='Grace_20250107173155')
+
     # logo = models.ImageField(upload_to='company_logos/', max_length=255)
 
     def __str__(self):
@@ -55,6 +101,8 @@ class ClientTemplateCompany(models.Model):
     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
     name = models.CharField(max_length=255)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='clientTemplateCompany',default='Grace_20250107173155')
+
     def __str__(self):
         return self.name
 
@@ -62,16 +110,21 @@ class ClientTemplateCompany(models.Model):
 
 class Comodity(models.Model):
     name = models.CharField(max_length=255, unique=True)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='comodity',default='Grace_20250107173155')
+
     def __str__(self):
         return self.name
 
 class IncoTerm(models.Model):
     rule = models.CharField(max_length=255, unique=True)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='incoTerm',default='Grace_20250107173155')
+
     def __str__(self):
         return self.rule
 
 class VersionedRate(models.Model):
     unique_uuid = models.CharField(max_length=24, unique=True, null=True, editable=False)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='versionedRate',default='Grace_20250107173155')
     company = models.ForeignKey(ClientTemplateCompany, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
@@ -106,6 +159,7 @@ class VersionedRate(models.Model):
 
 class Rate(models.Model):
     unique_uuid = models.CharField(max_length=24, unique=True, null=True, editable=False)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='rates',default='Grace_20250107173155')
     company = models.ForeignKey(ClientTemplateCompany, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
@@ -137,8 +191,7 @@ class Rate(models.Model):
         unique_together = ('company', 'source', 'destination', 'transit_time', 'freight_type', 'currency' ,'spot_filed', 'vessel_name','voyage', 'haz_class', 'packing_group', 'terms_condition', 'free_days' , 'free_days_comment' ,  'hazardous' , 'un_number', 'effective_date', 'expiration_date' , 'soft_delete')
 
     def __str__(self):
-        # return f"{self.company}: {self.source} to {self.destination} - {self.transit_time} | {self.freight_type}: ${self.rate}"
-        return f"{self.source} - {self.company}"
+        return f"{self.company}: {self.source} - {self.destination}"
 
     
 # MANUAL RATE 
@@ -146,6 +199,7 @@ class ManualRate(models.Model):
     # logo = models.ImageField(upload_to='company_logos/', max_length=255, blank=True, null=True)
     unique_uuid = models.CharField(max_length=24, unique=True, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, default=1)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='manualRates',default='Grace_20250107173155')
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     freight_type = models.ForeignKey(FreightType, on_delete=models.CASCADE)
@@ -171,8 +225,6 @@ class ManualRate(models.Model):
     remarks = models.TextField(blank=True, null=True)
     terms_condition = models.CharField(blank=True, null=True)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
-    # created_at = models.DateTimeField(auto_now_add=True)
-    # updated_at = models.DateTimeField(auto_now=True)
 
 
     class Meta:
@@ -181,26 +233,9 @@ class ManualRate(models.Model):
     def __str__(self):
          return f"{self.company} | {self.source} - {self.destination} | {self.rate} - {self.currency} - {self.cargotype} | {self.effective_date} - {self.expiration_date}"
 
-    
-# class SearchHistory(models.Model):
-#     user = models.ForeignKey(Company, on_delete=models.CASCADE)
-#     search_term = models.CharField(max_length=255)
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def is_expired(self):
-#         return timezone.now() > self.created_at + timedelta(days=7)
-    
-#     def save(self, *args, **kwargs):
-#         # Delete old history if limit is reached
-#         if SearchHistory.objects.filter(user=self.user).count() >= 10:
-#             SearchHistory.objects.filter(user=self.user).order_by('created_at').first().delete()
-
-#         super(SearchHistory, self).save(*args, **kwargs)
-
-#     class Meta:
-#         ordering = ['-created_at']
 class CustomerInfo(models.Model):
     company_name = models.CharField(max_length=60)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='customerInfo',default='Grace_20250107173155')
     cust_name = models.CharField(max_length=100)
     cust_email = models.EmailField(max_length=80)
     sales_represent = models.CharField(max_length=150)
@@ -231,12 +266,13 @@ class Registration(models.Model):
 # ACTIVITY LOG 
 # 30/Dec/2024
 class ActivityLog(models.Model):
-    user_id = models.ForeignKey(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,  # Dynamically points to the custom user model
         on_delete=models.CASCADE,
         related_name='activity_logs',
         null=True 
     )
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='activityLog',default='Grace_20250107173155')
     action_type = models.CharField(max_length=150)
     action_status = models.BooleanField(null=True)
     source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, blank=True)
@@ -246,19 +282,5 @@ class ActivityLog(models.Model):
 
     def _str_(self):
         return f"Action Log | {self.user} | {self.action_status} | {self.action_type} on {self.created_at}"
-
-
-# class ActivityLog(models.Model):
-#     userId = models.IntegerField()
-#     action_type = models.CharField(max_length=150)
-#     action_status = models.BooleanField(null=True)
-#     source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, blank=True)
-#     destination = models.ForeignKey(Destination, on_delete=models.CASCADE, null=True, blank=True)
-#     description = models.CharField(max_length=255)
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def __str__(self):
-#         return f"Action of Log | {self.userId} | {self.action_status} | {self.action_type} on {self.created_at}"
-    
-
+ 
 
