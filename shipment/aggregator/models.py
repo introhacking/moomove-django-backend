@@ -248,19 +248,7 @@ class CustomerInfo(models.Model):
 
     def __str__(self):
         return f"{self.company_name} | {self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
-     
-class Registration(models.Model):
-    name = models.CharField(max_length=50)
-    email = models.EmailField(max_length=50)
-    phone = models.CharField(max_length=20)
-    username = models.CharField(max_length=20)
-    password = models.CharField(max_length=70)
-
-    class Meta:
-        unique_together = ('name', 'email',  'username', 'password' ,'phone')
-
-    def __str__(self):
-        return f"{self.name} | {self.email} | {self.username} | {self.phone}"    
+        
     
 
 # ACTIVITY LOG 

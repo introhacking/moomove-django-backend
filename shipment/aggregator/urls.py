@@ -25,7 +25,6 @@ urlpatterns = [
     path('customer/', CustomerInfoListView.as_view(), name='create_customer'),
     path('customer-id/<int:id>/', CutomerInfoDetailsListView.as_view(), name='get_customer_info'),
     path('update-customer/<int:id>/', CustomerInfoListView.as_view(), name='update_customer_info'),
-    path('registration/', RegistrationInfoListView.as_view(), name='registration'),
     path('activity-log/', ActivityLogView.as_view(), name='activityLog'),
     path('clientinfo/', ClientinfoViewSet.as_view(), name='clientinfo'),
 

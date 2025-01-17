@@ -16,16 +16,28 @@ config={
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
-        fields = ['id' , 'name'] # Include the logo field
+        fields = ['id', 'name']
 
-        def validate(self, data):
-            # Ensure the user only operates on their client data
-            if self.context['request'].user.client != data.get('client'):
-                raise serializers.ValidationError("You are not authorized to perform this action.")
-            return data
-        # extra_kwargs = {
-        #     'logo': {'required': False}  # Make logo optional in the serializer
-        # }
+    def validate(self, data):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
+            raise serializers.ValidationError("You are not authorized to perform this action.")
+        return data
+
+# class CompanySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Company
+#         # fields = ['id' , 'name'] # Include the logo field
+#         fields = '__all__' 
+
+#         def validate(self, data):
+#             # Ensure the user only operates on their client data
+#             if self.context['request'].user.client != data.get('client'):
+#                 raise serializers.ValidationError("You are not authorized to perform this action.")
+#             return data
+#         # extra_kwargs = {
+#         #     'logo': {'required': False}  # Make logo optional in the serializer
+#         # }
 
 class ClientTemplateCompanySerializer(serializers.ModelSerializer):
     class Meta:
@@ -33,21 +45,33 @@ class ClientTemplateCompanySerializer(serializers.ModelSerializer):
         fields = ['id' , 'name']
 
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
+
+    # def validate(self, data):
+    #     # Ensure the user only operates on their client data
+    #     if self.context['request'].user.client != data.get('client'):
+    #         raise serializers.ValidationError("You are not authorized to perform this action.")
+    #     return data    
 
 class SourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Source
         fields = ['id' , 'name'] # Adjust based on your Source model fields
-    
+
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
-        return data
+        return data    
+    
+    # def validate(self, data):
+    #     # Ensure the user only operates on their client data
+    #     if self.context['request'].user.client != data.get('client'):
+    #         raise serializers.ValidationError("You are not authorized to perform this action.")
+    #     return data
 
 
 class DestinationSerializer(serializers.ModelSerializer):
@@ -56,19 +80,21 @@ class DestinationSerializer(serializers.ModelSerializer):
         fields = ['id' , 'name']   # Adjust based on your Destination model fields
 
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
-        return data
+        return data    
+
 
 class TransitTimeSerializer(serializers.ModelSerializer):
     class Meta:
         model = TransitTime
         fields = ['id', 'time']  # Adjust based on your TransitTime model fields
     
+
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data
 
@@ -79,8 +105,8 @@ class FreightTypeSerializer(serializers.ModelSerializer):
         fields = ['id', 'type'] # Adjust based on your FreightType model fields
     
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data
 
@@ -95,8 +121,8 @@ class VersionedRateSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
 
@@ -112,8 +138,8 @@ class RateSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
 
@@ -155,8 +181,8 @@ class RateSerializer1(serializers.Serializer):  # Change to `serializers.Seriali
         # ]
     
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data
 
@@ -172,8 +198,8 @@ class ManualRateSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data     
 
@@ -183,15 +209,10 @@ class CustomerInfoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
-
-class RegistrationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Registration,
-        fields = '__all__'
 
 class CommoditySerializer(serializers.ModelSerializer):
     class Meta:
@@ -199,8 +220,8 @@ class CommoditySerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
 
@@ -210,8 +231,8 @@ class IncoTermSerializer(serializers.ModelSerializer):
         fields = ['id', 'rule']
 
     def validate(self, data):
-        # Ensure the user only operates on their client data
-        if self.context['request'].user.client != data.get('client'):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
 
