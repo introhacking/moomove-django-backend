@@ -23,7 +23,7 @@
 from django.contrib import admin
 from .models import (
     Clientinfo, Source, Destination, TransitTime, FreightType, Company,
-    ClientTemplateCompany, Comodity, IncoTerm, VersionedRate, Rate, ManualRate,CustomerInfo
+    ClientTemplateCompany, Comodity, IncoTerm, VersionedRate, Rate, ShippingSchedule, ManualRate,CustomerInfo
 )
 
 
@@ -126,12 +126,18 @@ class RateAdmin(admin.ModelAdmin):
     search_fields = ('client__client_name', 'company__name', 'source__name', 'destination__name')
     list_filter = ('currency',)
 
+# SHIPPING SCHEDULE
+class ShippingScheduleInline(admin.TabularInline):
+    model = ShippingSchedule
+    extra = 1  # Number of blank forms to show
+    fields = ('departure_date', 'arrival_date', 'port_cut_off_date', 'si_cut_off_date','gate_opening_date','service')
 
 @admin.register(ManualRate)
 class ManualRateAdmin(admin.ModelAdmin):
     list_display = ('client', 'company', 'source', 'destination', 'rate', 'currency', 'freight_type')
     search_fields = ('client__client_name', 'company__name', 'source__name', 'destination__name')
     list_filter = ('currency',)
+    inlines = [ShippingScheduleInline]
 
 
 # Register other models without customization
@@ -158,3 +164,23 @@ class CustomerInfoAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ('terms_condition',)
+
+
+# SHIPPING SCHEDULE
+
+# class ShippingScheduleInline(admin.TabularInline):
+#     model = ShippingSchedule
+#     extra = 1  # Number of blank forms to show
+#     fields = ('departure_date', 'arrival_date', 'cut_off_date', 'service')
+
+# @admin.register(ManualRate)
+# class ManualRateAdmin(admin.ModelAdmin):
+#     # Fields to display in the list view
+#     list_display = ('client', 'company', 'source', 'destination', 'rate', 'currency', 'freight_type')
+    
+#     # Fields to include in the search functionality
+#     search_fields = ('client_client_name', 'companyname', 'sourcename', 'destination_name')
+    
+#     # Fields to filter in the list view
+#     list_filter = ('currency',)
+#     inlines = [ShippingScheduleInline]

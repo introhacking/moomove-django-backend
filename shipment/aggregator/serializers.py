@@ -110,6 +110,29 @@ class FreightTypeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data
 
+# COMMODITY
+class CommoditySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comodity
+        fields = ['id', 'name']
+
+    def validate(self, data):
+        # Validate client association
+        if not self.context['request'].user.client == data.get('client'):
+            raise serializers.ValidationError("You are not authorized to perform this action.")
+        return data
+
+
+# SHIPPING SCHEDULE
+class ShippingScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShippingSchedule
+        fields = ['id', 'departure_date', 'arrival_date', 'port_cut_off_date','si_cut_off_date','gate_opening_date','service']
+        extra_kwargs = {
+            'id': {'read_only': True},
+        }
+
+
 class VersionedRateSerializer(serializers.ModelSerializer):
     company = CompanySerializer()
     source = SourceSerializer()
@@ -193,6 +216,8 @@ class ManualRateSerializer(serializers.ModelSerializer):
     destination = DestinationSerializer()
     transit_time = TransitTimeSerializer()
     freight_type = FreightTypeSerializer()
+    shipping_schedules = ShippingScheduleSerializer(many=True, required=False)
+    # commodity_name = CommoditySerializer()
     class Meta:
         model = ManualRate
         fields = '__all__'
@@ -201,7 +226,35 @@ class ManualRateSerializer(serializers.ModelSerializer):
         # Validate client association
         if not self.context['request'].user.client == data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
-        return data     
+        return data 
+
+
+    def create(self, validated_data):
+            # Extract nested shipping schedule data
+            shipping_schedules_data = validated_data.pop('shipping_schedules', [])
+            manual_rate = ManualRate.objects.create(**validated_data)
+
+            # Create ShippingSchedule entries
+            for schedule_data in shipping_schedules_data:
+                ShippingSchedule.objects.create(manual_rate=manual_rate, **schedule_data)
+
+            return manual_rate
+
+    def update(self, instance, validated_data):
+        # Extract nested shipping schedule data
+        shipping_schedules_data = validated_data.pop('shipping_schedules', [])
+        instance = super().update(instance, validated_data)
+
+        # Update or recreate shipping schedules
+        if shipping_schedules_data:
+            # Clear existing schedules
+            instance.shipping_schedules.all().delete()
+
+            # Create new schedules
+            for schedule_data in shipping_schedules_data:
+                ShippingSchedule.objects.create(manual_rate=instance, **schedule_data)
+
+        return instance        
 
 class CustomerInfoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -214,16 +267,11 @@ class CustomerInfoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
 
-class CommoditySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Comodity
-        fields = ['id', 'name']
-
-    def validate(self, data):
-        # Validate client association
-        if not self.context['request'].user.client == data.get('client'):
-            raise serializers.ValidationError("You are not authorized to perform this action.")
-        return data    
+# class RegistrationSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Registration,
+#         fields = '__all__'
+    
 
 class IncoTermSerializer(serializers.ModelSerializer):
     class Meta:
@@ -260,10 +308,11 @@ class ActivityLogSerializer(serializers.ModelSerializer):
 class ClientinfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Clientinfo
-        fields ='_all_'
+        fields = ['client_id','client_name','company_name']
 
     def validate(self, data):
         # Ensure the user only operates on their client data
         if self.context['request'].user.client != data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
+

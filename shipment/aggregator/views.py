@@ -799,47 +799,6 @@ class RateWithVersionsAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
         )
 
-
-# class RateWithVersionsAPIView(APIView):
-#     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
-#     # permission_classes=[IsAuthenticated]
-
-#     def get(self, request, company_id):
-#         # print("company_id: ", company_id)
-#         try:
-#              # Get the logged-in user's client
-#             user_client = request.user.client
-
-#             # Check if the user has a client associated
-#             if not user_client:
-#                 return Response(
-#                     {"error": "You are not associated with any client."},
-#                     status=status.HTTP_403_FORBIDDEN,
-#                 )
-#             # Fetch the latest rates (is_current=True) for the given company
-#             rates = Rate.objects.filter(company_id=company_id,company__client_id=user_client.client_id, soft_delete=False)
-#             # rates = Rate.objects.filter(soft_delete=False)
-            
-#             # rates = Rate.objects.filter(company_id=company_id, version__is_current=True)
-#             # if not rates:
-#             #     print('rates form 807')
-#             #     rates = Rate.objects.filter(company_id=company_id, version__is_current=False)
-#             # Serialize the rates and their versioned rates
-#             # print(Rate.objects.filter(company_id=company_id).count(),
-#             #       Rate.objects.filter(company_id=company_id, version__is_current=False).count())
-
-#             # rate_serializer = RateSerializer(rates, many=True)
-#             rate_serializer = RateSerializer(rates, many=True)
-#             # print(rate_serializer.data)
-#             # count = len(rate_serializer.data)
-#             # print("count: ", count)
-#             return Response(rate_serializer.data, status=status.HTTP_200_OK)
-
-#         except Rate.DoesNotExist:
-#             return Response({"error": config['RATE_DATA_NOT_EXIST']}, status=status.HTTP_404_NOT_FOUND)
-#         except Exception as e:
-#             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 class CompanyListAPIView(APIView):
     permission_classes = [
         IsAuthenticated,
@@ -895,47 +854,6 @@ class CompanyListAPIView(APIView):
                 {"error": f"An unexpected error occurred: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-
-# class CompanyListAPIView(APIView):
-#     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
-#     # permission_classes=[IsAuthenticated]
-
-
-#     # def get(self, request):
-#     #     client_id = request.user.client_id  # Fetch the client_id from the logged-in user
-#     #     freight_type = Company.objects.filter(client_id=client_id)  # Filter by client_id
-#     #     serializer = CompanySerializer(freight_type, many=True)
-#     #     return Response(serializer.data)
-
-
-#     def get(self, request):
-#         # Retrieve the user's client
-#         client_id = request.user.client_id
-#         companies = Company.objects.filter(client_id=client_id, soft_delete=False)
-#         serializer = CompanySerializer(companies, many=True)
-#         return Response(serializer.data)   
-     
-
-#     def post(self, request):
-#         try:
-#            client_id = request.user.client_id
-#            requestData = request.data
-#            companyName = requestData.get('name')
-#            # Check if a Company with this name already exists
-#            existing_companyName = Company.objects.filter(name=companyName,client_id=client_id).first()
-#            if existing_companyName:
-#                 # If the name already exists, return the message
-#                 return Response({"message": config['EXIST_DATA']}, status=status.HTTP_200_OK)
-           
-#             # Otherwise, create a new Company instance
-#            Company.objects.create(name=companyName,client_id=client_id)
-
-#            return Response({'message': f"'{companyName}' company successfully created"}, status=status.HTTP_201_CREATED)
-
-
-#         except Exception as e:
-#            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ClientTemplateCompanyAPIView(APIView):
     permission_classes = [
@@ -994,56 +912,6 @@ class ClientTemplateCompanyAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-
-# class ClientTemplateCompanyAPIView(APIView):
-#     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
-#     # permission_classes=[IsAuthenticated]
-
-#     def get(self, request):
-#         # Get the logged-in user's client
-#             user_client = request.user.client
-
-#             # Check if the user has a client associated
-#             if not user_client:
-#                 return Response(
-#                     {"error": "You are not associated with any client."},
-#                     status=status.HTTP_403_FORBIDDEN,
-#                 )
-
-#             # Filter companies by client_id
-#             companies = ClientTemplateCompany.objects.filter(
-#                 client_id=user_client.client_id, soft_delete=False
-#             )
-#             serializer = ClientTemplateCompanySerializer(companies, many=True)
-#             return Response(serializer.data, status=status.HTTP_200_OK)
-
-#     def post(self, request):
-#         try:
-#             # Include the user's client_id in the request data
-#             client_id = request.user.client.client_id if request.user.client else None
-#             if not client_id:
-#                 return Response(
-#                     {"error": "You are not associated with any client."},
-#                     status=status.HTTP_403_FORBIDDEN,
-#                 )
-
-#             # Attach the client_id to the request data
-#             request.data["client_id"] = client_id
-#             serializer = ClientTemplateCompanySerializer(data=request.data)
-
-#             if serializer.is_valid():
-#                 serializer.save()
-#                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#         except Exception as e:
-#             return Response(
-#                 {"error": f"An unexpected error occurred: {str(e)}"},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-
 class SourceListAPIView(APIView):
     permission_classes = [
         IsAuthenticated,
@@ -1072,47 +940,6 @@ class SourceListAPIView(APIView):
                 {"error": f"An unexpected error occurred: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-
-
-# class SourceListAPIView(APIView):
-#     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
-#     # permission_classes=[IsAuthenticated]
-
-#     # def get(self, request):
-#     #     client_id = request.user.client_id  # Fetch the client_id from the logged-in user
-#     #     sources = Source.objects.filter(soft_delete=False, client_id=client_id)
-#     #     serializer = SourceSerializer(sources, many=True)
-#     #     return Response(serializer.data)
-
-#     def get(self, request):
-#         # Retrieve the user's client
-#         client_id = request.user.client_id
-#         sources = Source.objects.filter(client_id=client_id, soft_delete=False)
-#         serializer = SourceSerializer(sources, many=True)
-#         return Response(serializer.data)
-
-
-#     def post(self, request):
-#         try:
-#            client_id = request.user.client_id
-#            requestData = request.data
-#            sourceName = requestData.get('name')
-#            # Check if a Source with this name already exists
-#            existing_sourceName = Source.objects.filter(name=sourceName,client_id=client_id).first()
-#            if existing_sourceName:
-#                 # If the name already exists, return the message
-#                 return Response({"message": config['EXIST_DATA']}, status=status.HTTP_200_OK)
-           
-#             # Otherwise, create a new Source instance
-#            Source.objects.create(name=sourceName,client_id=client_id)
-
-#            return Response({'message': f"'{sourceName}' source successfully created"}, status=status.HTTP_201_CREATED)
-
-
-#         except Exception as e:
-#            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
-
 
 class DestinationListAPIView(APIView):
     permission_classes = [
@@ -1143,40 +970,6 @@ class DestinationListAPIView(APIView):
                 {"error": f"An unexpected error occurred: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-
-# class DestinaltionListAPIView(APIView):
-#     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
-#     # permission_classes=[IsAuthenticated]
-
-#     def get(self, request):
-#         # Retrieve the user's client
-#         client_id = request.user.client_id
-#         destination = Destination.objects.filter(client_id=client_id, soft_delete=False)
-#         serializer = DestinationSerializer(destination, many=True)
-#         return Response(serializer.data)
-
-
-#     def post(self, request):
-#         try:
-#            client_id = request.user.client_id
-#            requestData = request.data
-#            destinationName = requestData.get('name')
-#            # Check if a Destination with this name already exists
-#            existing_destinationName = Destination.objects.filter(name=destinationName,client_id=client_id).first()
-#            if existing_destinationName:
-#                 # If the name already exists, return the message
-#                 return Response({"message": config['EXIST_DATA']}, status=status.HTTP_200_OK)
-           
-#             # Otherwise, create a new Destination instance
-#            Destination.objects.create(name=destinationName,client_id=client_id)
-
-#            return Response({'message': f"'{destinationName}' destination successfully created"}, status=status.HTTP_201_CREATED)
-
-
-#         except Exception as e:
-#            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
 
 class FreightTypeListAPIView(APIView):
     permission_classes = [
@@ -1244,38 +1037,6 @@ class FreightTypeListAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
-
-# class FrightTypeListAPIView(APIView):
-#     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
-#     # permission_classes=[IsAuthenticated]
-
-#     def get(self, request):
-#         client_id = request.user.client_id  # Fetch the client_id from the logged-in user
-#         freight_type = FreightType.objects.filter(client_id=client_id)  # Filter by client_id
-#         serializer = FreightTypeSerializer(freight_type, many=True)
-#         return Response(serializer.data)
-
-#     def post(self, request):
-#         try:
-#            client_id = request.user.client_id
-#            requestData = request.data
-#            freight_type = requestData.get('type')
-#            # Check if a FreightType with this type already exists
-#            existing_freight_type = FreightType.objects.filter(type=freight_type,client_id=client_id).first()
-#            if existing_freight_type:
-#                 # If the type already exists, return the message
-#                 return Response({"message": config['EXIST_DATA']}, status=status.HTTP_200_OK)
-           
-#             # Otherwise, create a new FreightType instance
-#            FreightType.objects.create(type=freight_type,client_id=client_id)
-
-#            return Response({'message': config['FREIGHT_TYPE_CREATED']}, status=status.HTTP_201_CREATED)
-
-
-#         except Exception as e:
-#            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
-
-
 class RateListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser]
     serializer_class = RateSerializer1
@@ -1308,35 +1069,6 @@ class RateListView(generics.ListAPIView):
             # Convert the result into a list of dictionaries
             data = [dict(zip(columns, row)) for row in rows]
         return data
-
-
-
-# class RateListView(generics.ListAPIView):
-#     permission_classes =[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
-#     # permission_classes = [IsAuthenticated]
-#     serializer_class = RateSerializer1
-
-#     def get_queryset(self):
-#         source_id = self.kwargs.get('source')
-#         destination_id = self.kwargs.get('destination')
-#         client_id = self.request.user.client_id
-
-#         with connection.cursor() as cursor:
-#             # THIS IS STORE PRODUCER NAME IS "get_combined_rates_data" USE HERE 
-#             cursor.execute("SELECT * FROM get_combined_rates_data(%s, %s, %s)", [source_id, destination_id, client_id])
-#             rows = cursor.fetchall()
-
-#             columns = [
-#                 'id', 'unique_uuid', 'company_id', 'company_name', 'rate', 'currency',
-#                 'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
-#                 'expiration_date', 'un_number' ,'vessel_name', 'cargotype', 'voyage', 'hazardous', 'terms_condition', 'source_id', 'source_name', 'destination_id', 
-#                 'destination_name','transit_time_id','transit_time','freight_type_id','freight_type', 'remarks'
-#                 # 'client_template_id', 'client_template_name',
-#             ]
-#             # columns = config.get("RATE_LIST_QUERYSET" , "").split(",")
-#             data = [dict(zip(columns, row)) for row in rows]
-#             return data  # Return as list of dictionaries for serialization
-
 
 class ManualRateWithRateWithVersionsAPIView(APIView):
     permission_classes = [
@@ -1376,25 +1108,6 @@ class ManualRateWithRateWithVersionsAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-
-# class ManualRateWithRateWithVersionsAPIView(APIView):
-#     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly]
-#     # permission_classes=[IsAuthenticated]
-
-#     def get(self, request, company_id):
-#         # print("clienttemplatecompany_id: ", clienttemplatecompany_id)
-#         try:
-#             client_id = request.user.client_id  # Fetch the client_id from the logged-in user
-#             manual_rates = ManualRate.objects.filter(company_id=company_id, client_id=client_id, soft_delete=False)
-#             manual_rates_serializer = ManualRateSerializer(manual_rates, many=True)
-#             return Response(manual_rates_serializer.data, status=status.HTTP_200_OK)
-
-#         except ManualRate.DoesNotExist:
-#             return Response({"error": "ManualRate version not found for the company"}, status=status.HTTP_404_NOT_FOUND)
-#         except Exception as e:
-#             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
 class ManualRateListView(APIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly]
 
@@ -1410,66 +1123,103 @@ class ManualRateListView(APIView):
         manual_rate_serializer = ManualRateSerializer(manual_rate, many=True)
         return Response(manual_rate_serializer.data)
 
+
+    
+# UPDATED CODED  [ POST ]
     def post(self, request):
         try:
             with transaction.atomic():
-                requestData = request.data
+                rate_data = request.data  # Expecting a single dictionary
 
-                # Extract client_id
+                # Extract client_id from the request user
                 user = request.user
-                client_id = user.client_id if hasattr(user, 'client_id') else None
+                client_id = getattr(user, 'client_id', None)
                 if not client_id:
                     return Response({"detail": "Client ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-                
-                # Extract other request data
-                company_name = requestData.get('company')
-                source_name = requestData.get('source')
-                destination_name = requestData.get('destination')
-                freight_type = requestData.get('freight_type')
-                transit_time = requestData.get('transit_time')
-                commodity_name = requestData.get('cargotype')
-                manualrate = requestData.get('rate')
-                effectiveData = requestData.get('effective_date')
-                expirationData = requestData.get('expiration_date')
 
-                # shipping_schedules = requestData.get('shipping_schedules', [])  # Expecting a list of schedules
+                # Validate request format
+                if not isinstance(rate_data, dict):
+                    return Response({"error": "Invalid data format. Expected a single rate data object."}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Ensure required fields are provided
-                required_fields = [company_name, source_name, destination_name, freight_type, transit_time, manualrate, effectiveData, expirationData]
-                if not all(required_fields):
-                    return Response({"message": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+                # Required fields
+                required_fields = ["company", "source", "destination", "freight_type", "rate", "currency", 
+                                "effective_date", "expiration_date"]
+                for field in required_fields:
+                    if field not in rate_data or not rate_data[field]:
+                        return Response({"error": f"Missing or empty required field: {field}"}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Create or retrieve the instances
+                # Extracting field values
+                company_name = rate_data.get('company')
+                source_name = rate_data.get('source')
+                destination_name = rate_data.get('destination')
+                freight_type_name = rate_data.get('freight_type')
+                transit_time = rate_data.get('transit_time')
+                cargotype_name = rate_data.get('cargotype')
+                rate = rate_data.get('rate')
+                currency = rate_data.get('currency')
+                hazardous = rate_data.get('hazardous')
+                un_number = rate_data.get('un_number')
+                direct_shipment = rate_data.get('direct_shipment')
+                spot_filed = rate_data.get('spot_filed')
+                isRateTypeStatus = rate_data.get('isRateTypeStatus')
+                vessel_name = rate_data.get('vessel_name')
+                voyage = rate_data.get('voyage')
+                haz_class = rate_data.get('haz_class')
+                packing_group = rate_data.get('packing_group')
+                transhipment_add_port = rate_data.get('transhipment_add_port')
+                free_days = rate_data.get('free_days')
+                free_days_comment = rate_data.get('free_days_comment')
+                effective_date = rate_data.get('effective_date')
+                expiration_date = rate_data.get('expiration_date')
+                remarks = rate_data.get('remarks')
+                terms_condition = rate_data.get('terms_condition')
+                shipping_schedules = rate_data.get('shipping_schedules', [])
+
+                # Retrieve or create related entities
                 company_instance, _ = Company.objects.get_or_create(name=company_name)
-                source_instance, _ = Source.objects.get_or_create(name=source_name)
-                destination_instance, _ = Destination.objects.get_or_create(name=destination_name)
-                freight_type_instance, _ = FreightType.objects.get_or_create(type=freight_type)
-                transit_time_instance, _ = TransitTime.objects.get_or_create(time=transit_time)
-                commodity_name_instance, _ = Comodity.objects.get_or_create(name=commodity_name)
+                source_instance = Source.objects.filter(name=source_name).first() or Source.objects.create(name=source_name)
+                destination_instance = Destination.objects.filter(name=destination_name).first() or Destination.objects.create(name=destination_name)
+                freight_type_instance = FreightType.objects.filter(type=freight_type_name).first() or FreightType.objects.create(type=freight_type_name)
+                transit_time_instance = TransitTime.objects.filter(time=transit_time).first() or TransitTime.objects.create(time=transit_time)
+                commodity_instance = Comodity.objects.filter(name=cargotype_name).first() or Comodity.objects.create(name=cargotype_name)
 
-                filters = {
-                    'client_id': client_id,
-                    'company': company_instance,
-                    'source': source_instance,
-                    'destination': destination_instance,
-                    'freight_type': freight_type_instance,
-                    'transit_time': transit_time_instance,
-                    'cargotype': commodity_name_instance,
-                    'rate': manualrate,
-                    'soft_delete': False
-                }
-                
-                # Check for existing manual rate
-                existing_manual_rate = ManualRate.objects.filter(**filters).first()
+                # Check if a record with ALL the same values exists in ManualRate
+                existing_manual_rate = ManualRate.objects.filter(
+                    company=company_instance,
+                    source=source_instance,
+                    destination=destination_instance,
+                    freight_type=freight_type_instance,
+                    transit_time=transit_time_instance,
+                    cargotype=commodity_instance,
+                    rate=rate,
+                    currency=currency,
+                    hazardous=hazardous,
+                    un_number=un_number,
+                    direct_shipment=direct_shipment,
+                    spot_filed=spot_filed,
+                    isRateTypeStatus=isRateTypeStatus,
+                    vessel_name=vessel_name,
+                    voyage=voyage,
+                    haz_class=haz_class,
+                    packing_group=packing_group,
+                    transhipment_add_port=transhipment_add_port,
+                    free_days=free_days,
+                    free_days_comment=free_days_comment,
+                    effective_date=effective_date,
+                    expiration_date=expiration_date,
+                    remarks=remarks,
+                    terms_condition=terms_condition
+                ).exists()
 
                 if existing_manual_rate:
-                    return Response({"message": "Manual rate already exists."}, status=status.HTTP_200_OK)
+                    return Response({"message": f"Duplicate record detected. No new entry created."}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Create new ManualRate record
+                # Generate a unique UUID for the new manual rate
                 timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
                 unique_id = f"{timestamp}{str(uuid.uuid4()).replace('-', '')[:8]}"
-                common_uuid = unique_id[:24]
-                
+                common_uuid = unique_id[:24]  # Use only the first 24 characters of the UUID
+
+                # Create a new record in the ManualRate table
                 manual_rate = ManualRate.objects.create(
                     unique_uuid=common_uuid,
                     client_id=client_id,
@@ -1478,30 +1228,200 @@ class ManualRateListView(APIView):
                     destination=destination_instance,
                     freight_type=freight_type_instance,
                     transit_time=transit_time_instance,
-                    cargotype=commodity_name_instance,
-                    rate=manualrate,
-                    free_days=requestData.get('free_days'),
-                    free_days_comment=requestData.get('free_days_comment'),
-                    currency=requestData.get('currency'),
-                    hazardous=requestData.get('hazardous'),
-                    un_number=requestData.get('un_number'),
-                    direct_shipment=requestData.get('direct_shipment'),
-                    spot_filed=requestData.get('spot_filed'),
-                    isRateTypeStatus=requestData.get('isRateTypeStatus'),
-                    vessel_name=requestData.get('vessel_name'),
-                    voyage=requestData.get('voyage'),
-                    haz_class=requestData.get('haz_class'),
-                    packing_group=requestData.get('packing_group'),
-                    transhipment_add_port=requestData.get('transhipment_add_port'),
-                    effective_date=effectiveData,
-                    expiration_date=expirationData,
-                    remarks=requestData.get('remarks'),
-                    terms_condition=requestData.get('terms_condition'),
+                    cargotype=commodity_instance,
+                    rate=rate,
+                    currency=currency,
+                    hazardous=hazardous,
+                    un_number=un_number,
+                    direct_shipment=direct_shipment,
+                    spot_filed=spot_filed,
+                    isRateTypeStatus=isRateTypeStatus,
+                    vessel_name=vessel_name,
+                    voyage=voyage,
+                    haz_class=haz_class,
+                    packing_group=packing_group,
+                    transhipment_add_port=transhipment_add_port,
+                    free_days=free_days,
+                    free_days_comment=free_days_comment,
+                    effective_date=effective_date,
+                    expiration_date=expiration_date,
+                    remarks=remarks,
+                    terms_condition=terms_condition,
                 )
-                return Response({"message": "Manual rate created successfully."}, status=status.HTTP_201_CREATED)
 
+                for schedule in shipping_schedules:
+                    departure_date = schedule.get('departure_date')
+                    arrival_date = schedule.get('arrival_date')
+                    port_cut_off_date = schedule.get('port_cut_off_date')
+                    si_cut_off_date = schedule.get('si_cut_off_date')
+                    gate_opening_date = schedule.get('gate_opening_date')
+                    service = schedule.get('service')
+                    
+                    # Validate schedule dates before inserting
+                    if not (departure_date and arrival_date and port_cut_off_date and si_cut_off_date and gate_opening_date):
+                        raise ValueError("Shipping schedule dates are incomplete.")
+
+                    if departure_date > arrival_date or port_cut_off_date > departure_date or si_cut_off_date > port_cut_off_date or gate_opening_date > si_cut_off_date:
+                        raise ValueError("Invalid schedule dates.")
+
+                    # Create ShippingSchedule instance
+                    ShippingSchedule.objects.create(
+                        manual_rate=manual_rate,
+                        departure_date=departure_date,
+                        arrival_date=arrival_date,
+                        port_cut_off_date=port_cut_off_date,
+                        si_cut_off_date=si_cut_off_date,
+                        gate_opening_date=gate_opening_date,
+                        service=service
+                    )
+
+                return_response = {
+                    'id': manual_rate.id,
+                    'company': company_name,
+                    'source': source_name,
+                    'destination': destination_name,
+                    'freight_type': freight_type_name,
+                    'message': 'Record created successfully'
+                }
+
+                return Response(return_response, status=status.HTTP_201_CREATED)
+
+        except ValueError as ve:
+            return Response({"message": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError as e:
+            return Response({"detail": f"Database error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": f"An error occurred: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+# SINGLE POST WORKING ONLY
+
+    # def post(self, request):
+    #     try:
+    #         with transaction.atomic():
+    #             requestData = request.data
+    #             print(requestData)
+
+    #             # Extract client_id
+    #             user = request.user
+    #             client_id = user.client_id if hasattr(user, 'client_id') else None
+    #             if not client_id:
+    #                 return Response({"detail": "Client ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+                
+    #             # Extract other request data
+    #             company = requestData.get('company')
+    #             source = requestData.get('source')
+    #             destination = requestData.get('destination')
+    #             freight_type = requestData.get('freight_type')
+    #             transit_time = requestData.get('transit_time')
+    #             commodity_name = requestData.get('cargotype')
+    #             manualrate = requestData.get('rate')
+    #             effectiveData = requestData.get('effective_date')
+    #             expirationData = requestData.get('expiration_date')
+    #             # shipping_schedules = requestData.get('shipping_schedules', [])  # Expecting a list of schedules
+
+    #             # Ensure required fields are provided
+    #             required_fields = [company, source, destination, freight_type, transit_time, manualrate,effectiveData,expirationData]
+    #             if not all(required_fields):
+    #                 return Response({"message": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+
+    #             # Create or retrieve the instances
+    #             company_instance, _ = Company.objects.get_or_create(name=company)
+    #             source_instance, _ = Source.objects.get_or_create(name=source)
+    #             destination_instance, _ = Destination.objects.get_or_create(name=destination)
+    #             freight_type_instance, _ = FreightType.objects.get_or_create(type=freight_type)
+    #             transit_time_instance, _ = TransitTime.objects.get_or_create(time=transit_time)
+    #             commodity_name_instance, _ = Comodity.objects.get_or_create(name=commodity_name)
+
+    #             filters = {
+    #                 'client_id': client_id,
+    #                 'company': company_instance,
+    #                 'source': source_instance,
+    #                 'destination': destination_instance,
+    #                 'freight_type': freight_type_instance,
+    #                 'transit_time': transit_time_instance,
+    #                 'rate': manualrate,
+    #                 'effective_date': effectiveData,
+    #                 'expiration_date': expirationData,
+    #                 'soft_delete': False
+    #             }
+                
+    #             # Check for existing manual rate
+    #             existing_manual_rate = ManualRate.objects.filter(**filters).first()
+
+    #             if existing_manual_rate:
+    #                 return Response({"message": "Manual rate already exists."}, status=status.HTTP_200_OK)
+
+    #             # Create new ManualRate record
+    #             timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
+    #             unique_id = f"{timestamp}{str(uuid.uuid4()).replace('-', '')[:8]}"
+    #             common_uuid = unique_id[:24]
+                
+    #             manual_rate = ManualRate.objects.create(
+    #                 unique_uuid=common_uuid,
+    #                 client_id=client_id,
+    #                 company=company_instance,
+    #                 source=source_instance,
+    #                 destination=destination_instance,
+    #                 freight_type=freight_type_instance,
+    #                 transit_time=transit_time_instance,
+    #                 cargotype=commodity_name_instance,
+    #                 rate=manualrate,
+    #                 free_days=requestData.get('free_days'),
+    #                 free_days_comment=requestData.get('free_days_comment'),
+    #                 currency=requestData.get('currency'),
+    #                 hazardous=requestData.get('hazardous'),
+    #                 un_number=requestData.get('un_number'),
+    #                 direct_shipment=requestData.get('direct_shipment'),
+    #                 spot_filed=requestData.get('spot_filed'),
+    #                 isRateTypeStatus=requestData.get('isRateTypeStatus'),
+    #                 vessel_name=requestData.get('vessel_name'),
+    #                 voyage=requestData.get('voyage'),
+    #                 haz_class=requestData.get('haz_class'),
+    #                 packing_group=requestData.get('packing_group'),
+    #                 transhipment_add_port=requestData.get('transhipment_add_port'),
+    #                 effective_date=effectiveData,
+    #                 expiration_date=expirationData,
+    #                 remarks=requestData.get('remarks'),
+    #                 terms_condition=requestData.get('terms_condition'),
+    #                 # shipping_schedule=requestData.get('shipping_schedule')
+    #             )
+
+
+    #             # # # new added on 17 jan
+    #             # # # Process and add shipping schedules 
+    #             # # for schedule in shipping_schedules:
+    #             # #     departure_date = schedule.get('departure_date')
+    #             # #     arrival_date = schedule.get('arrival_date')
+    #             # #     cut_off_date = schedule.get('cut_off_date')
+    #             # #     service = schedule.get('service')
+
+    #             # #     # Validate schedule dates
+    #             # #     if not (departure_date and arrival_date and cut_off_date):
+    #             # #         return Response({"message": "Shipping schedule dates are incomplete."}, status=status.HTTP_400_BAD_REQUEST)
+                    
+    #             # #     if departure_date > arrival_date or cut_off_date > departure_date:
+    #             # #         return Response({"message": "Invalid schedule dates."}, status=status.HTTP_400_BAD_REQUEST)
+
+    #             # #     # Create ShippingSchedule instance
+    #             # #     ShippingSchedule.objects.create(
+    #             # #         manual_rate=manual_rate,
+    #             # #         departure_date=departure_date,
+    #             # #         arrival_date=arrival_date,
+    #             # #         cut_off_date=cut_off_date,
+    #             # #         service=service
+    #             # #     )
+    #             return Response({"message": requestData}, status=status.HTTP_201_CREATED)
+
+    #     except Exception as e:
+    #         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
     def put(self, request, unique_uuid):
         try:
@@ -1587,427 +1507,6 @@ class ManualRateListView(APIView):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
-# class ManualRateListView(APIView):
-#     permission_classes = [IsAuthenticated|IsClientUserEditAndRead|IsSystemAdministrator|IsClientAdministrator|IsSystemOrClientAdmin]
-#     # permission_classes = [IsAuthenticated]
-
-#     #  FOR GET 
-#     def get(self, request):
-#         # Fetch `client_id` from the request or user context
-#         client_id = request.user.client_id  # Assuming `client_id` is associated with the user model
-#         if not client_id:
-#             return Response({"detail": "Client ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-        
-#         # Filter records by `client_id` and exclude soft-deleted records
-#         manual_rate = ManualRate.objects.filter(client_id=client_id, soft_delete=False)  # Exclude soft-deleted records
-#         manual_rate_serializer = ManualRateSerializer(manual_rate, many=True)
-#         return Response(manual_rate_serializer.data)
-
-#     #  FOR POST 
-
-
-#     def post(self, request, *args, **kwargs):
-#         try:
-#             with transaction.atomic():
-#                 # Extract client_id
-#                 client_id = request.user.client_id if hasattr(request.user, "client_id") else request.data.get("client_id")
-#                 if not client_id:
-#                     return Response({"detail": "Client ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-#                 # Extract and validate request data
-#                 data = request.data
-#                 required_fields = ["company", "source", "destination", "freight_type", "transit_time","rate", "effective_date", "expiration_date", "currency"]
-#                 if not all([data.get(field) for field in required_fields]):
-#                     return Response({"message": f" Required fields are missing."}, status=status.HTTP_400_BAD_REQUEST)
-
-#                 # Get or create related entities
-#                 company_instance, _ = Company.objects.get_or_create(name=data["company"])
-#                 source_instance, _ = Source.objects.get_or_create(name=data["source"])
-#                 destination_instance, _ = Destination.objects.get_or_create(name=data["destination"])
-#                 freight_type_instance, _ = FreightType.objects.get_or_create(type=data["freight_type"])
-#                 transit_time_instance, _ = TransitTime.objects.get_or_create(time=data["transit_time"])
-#                 cargo_type_instance, _ = Comodity.objects.get_or_create(name=data["cargotype"])
-
-#                 # Check if a record exists
-#                 existing_rate = ManualRate.objects.filter(
-#                     client_id=client_id,
-#                     company=company_instance,
-#                     source=source_instance,
-#                     destination=destination_instance,
-#                     freight_type=freight_type_instance,
-#                     transit_time=transit_time_instance,
-#                     rate=data["rate"],
-#                     soft_delete=False,
-#                 ).first()
-
-#                 if existing_rate:
-#                     return Response({"message": "Rate already exists."}, status=status.HTTP_200_OK)
-
-
-#                 # Get the current timestamp in a unique format
-#                 timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
-#                 # Generate a UUID and replace hyphens
-#                 unique_id = f"{timestamp}{str(uuid.uuid4()).replace('-', '')[:8]}"
-#                 common_uuid = unique_id[:24]
-
-#                 # Create new record
-#                 manual_rate = ManualRate.objects.create(
-#                     unique_uuid=common_uuid,
-#                     client_id=client_id,
-#                     company=company_instance,
-#                     source=source_instance,
-#                     destination=destination_instance,
-#                     freight_type=freight_type_instance,
-#                     transit_time=transit_time_instance,
-#                     cargotype=cargo_type_instance,
-#                     rate=data["rate"],
-#                     free_days=data.get("free_days"),
-#                     free_days_comment=data.get("free_days_comment"),
-#                     currency=data["currency"],
-#                     hazardous=data.get("hazardous"),
-#                     un_number=data.get("un_number"),
-#                     direct_shipment=data.get("direct_shipment"),
-#                     spot_filed=data.get("spot_filed"),
-#                     isRateTypeStatus=data.get("isRateTypeStatus"),
-#                     vessel_name=data.get("vessel_name"),
-#                     voyage=data.get("voyage"),
-#                     haz_class=data.get("haz_class"),
-#                     packing_group=data.get("packing_group"),
-#                     transhipment_add_port=data.get("transhipment_add_port"),
-#                     effective_date=data["effective_date"],
-#                     expiration_date=data["expiration_date"],
-#                     remarks=data.get("remarks"),
-#                     terms_condition=data.get("terms_condition"),
-#                 )
-
-#                 serializer = ManualRateSerializer(manual_rate)
-#                 return Response({"message": "Manual rate created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
-
-#         except IntegrityError as e:
-#             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-#         except Exception as e:
-#             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#     # def post(self, request):
-#     #     try:
-#     #         with transaction.atomic():   
-#     #             requestData = request.data
-
-#     #             # Extract client_id
-#     #             client_id = request.user.client_id
-#     #             if not client_id:
-#     #                 return Response({"detail": "Client ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-#     #             # Extract request data
-#     #             company_name = requestData.get('company')
-#     #             source_name = requestData.get('source')
-#     #             destination_name = requestData.get('destination')
-#     #             freight_type = requestData.get('freight_type')
-#     #             transit_time = requestData.get('transit_time')
-#     #             commodity_name = requestData.get('cargotype')
-#     #             manualrate = requestData.get('rate')
-#     #             effectiveData = requestData.get('effective_date')
-#     #             expirationData = requestData.get('expiration_date')
-
-#     #             # Ensure required fields are provided
-#     #             required_fields = [company_name, source_name, destination_name, freight_type, transit_time, manualrate]
-#     #             if not all(required_fields):
-#     #                 return Response({"message": required_fields}, status=status.HTTP_400_BAD_REQUEST)
-
-#     #             # Create or retrieve the instances
-#     #             company_instance, _ = Company.objects.get_or_create(name=company_name)
-#     #             source_instance, _ = Source.objects.get_or_create(name=source_name)
-#     #             destination_instance, _ = Destination.objects.get_or_create(name=destination_name)
-#     #             freight_type_instance, _ = FreightType.objects.get_or_create(type=freight_type)
-#     #             transit_time_instance, _ = TransitTime.objects.get_or_create(time=transit_time)
-#     #             commodity_name_instance, _ = Comodity.objects.get_or_create(name=commodity_name)
-
-#     #             # Check for exact matches
-#     #             exact_filters = {
-#     #                 'client_id': client_id,
-#     #                 'company': company_instance,
-#     #                 'source': source_instance,
-#     #                 'destination': destination_instance,
-#     #                 'freight_type': freight_type_instance,
-#     #                 'transit_time': transit_time_instance,
-#     #                 'cargotype': commodity_name_instance,
-#     #                 'effective_date': effectiveData,
-#     #                 'expiration_date': expirationData,
-#     #                 'rate': manualrate,
-#     #                 'soft_delete': False
-#     #             }
-#     #             exact_match = ManualRate.objects.filter(**exact_filters).first()
-
-#     #             if exact_match:
-#     #                 print('already exists')
-#     #                 return Response({"message": "already exists"}, status=status.HTTP_200_OK)
-
-#     #             # Check for partial matches
-#     #             partial_filters = {
-#     #                 'client_id': client_id,
-#     #                 'company': company_instance,
-#     #                 'source': source_instance,
-#     #                 'destination': destination_instance,
-#     #                 'freight_type': freight_type_instance,
-#     #                 'transit_time': transit_time_instance,
-#     #                 'cargotype': commodity_name_instance,
-#     #                 'soft_delete': False
-#     #             }
-#     #             partial_match = ManualRate.objects.filter(**partial_filters).exclude(
-#     #                 effective_date=effectiveData,
-#     #                 expiration_date=expirationData,
-#     #                 rate=manualrate
-#     #             ).first()
-
-#     #             if partial_match:
-#     #                 print('partial_match: true')
-#     #                 # Create a new record with a unique identifier
-#     #                 timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
-#     #                 unique_id = f"{timestamp}{str(uuid.uuid4()).replace('-', '')[:8]}"
-#     #                 common_uuid = unique_id[:24]
-
-#     #                 # ManualRate.objects.create(
-#     #                 #     unique_uuid=common_uuid,
-#     #                 #     client_id=client_id,
-#     #                 #     company=company_instance,
-#     #                 #     source=source_instance,
-#     #                 #     destination=destination_instance,
-#     #                 #     freight_type=freight_type_instance,
-#     #                 #     transit_time=transit_time_instance,
-#     #                 #     cargotype=commodity_name_instance,
-#     #                 #     rate=manualrate,
-#     #                 #     free_days=requestData.get('free_days'),
-#     #                 #     free_days_comment=requestData.get('free_days_comment'),
-#     #                 #     currency=requestData.get('currency'),
-#     #                 #     hazardous=requestData.get('hazardous'),
-#     #                 #     un_number=requestData.get('un_number'),
-#     #                 #     direct_shipment=requestData.get('direct_shipment'),
-#     #                 #     spot_filed=requestData.get('spot_filed'),
-#     #                 #     isRateTypeStatus=requestData.get('isRateTypeStatus'),
-#     #                 #     vessel_name=requestData.get('vessel_name'),
-#     #                 #     voyage=requestData.get('voyage'),
-#     #                 #     haz_class=requestData.get('haz_class'),
-#     #                 #     packing_group=requestData.get('packing_group'),
-#     #                 #     transhipment_add_port=requestData.get('transhipment_add_port'),
-#     #                 #     effective_date=effectiveData,
-#     #                 #     expiration_date=expirationData,
-#     #                 #     remarks=requestData.get('remarks'),
-#     #                 #     terms_condition=requestData.get('terms_condition'),
-#     #                 # )
-
-#     #                 return Response({'message': 'Manual rate processed successfully'}, status=status.HTTP_201_CREATED)
-
-#     #     except Exception as e:
-#     #         print(str(e))
-#     #         return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
-
-#     # def post(self, request):
-#     #     try:
-#     #         with transaction.atomic():   
-#     #             requestData = request.data
-
-#     #              # Extract client_id
-#     #             client_id = request.user.client_id
-#     #             if not client_id:
-#     #                 return Response({"detail": "Client ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-#     #             # Extract request data
-#     #             company_name = requestData.get('company')
-#     #             source_name = requestData.get('source')
-#     #             destination_name = requestData.get('destination')
-#     #             freight_type = requestData.get('freight_type')
-#     #             transit_time = requestData.get('transit_time')
-#     #             commodity_name = requestData.get('cargotype')
-#     #             manualrate = requestData.get('rate')
-#     #             effectiveData = requestData.get('effective_date')
-#     #             expirationData = requestData.get('expiration_date')
-
-#     #             # Ensure required fields are provided
-#     #             required_fields = [company_name, source_name, destination_name, freight_type, transit_time,manualrate]
-#     #             if not all(required_fields):
-#     #                 return Response({"message": required_fields }, status=status.HTTP_400_BAD_REQUEST)
-
-#     #             # Create or retrieve the instances
-#     #             # company_instance, _ = Company.objects.get_or_create(name=company_name)
-#     #             company_instance, _ = Company.objects.get_or_create(name=company_name)
-#     #             # company_instance, _ = ManualShippingList.objects.get_or_create(name=company_name)
-#     #             source_instance, _ = Source.objects.get_or_create(name=source_name)
-#     #             destination_instance, _ = Destination.objects.get_or_create(name=destination_name)
-#     #             freight_type_instance, _ = FreightType.objects.get_or_create(type=freight_type)
-#     #             transit_time_instance, _ = TransitTime.objects.get_or_create(time=transit_time)
-#     #             commodity_name_instance, _ = Comodity.objects.get_or_create(name=commodity_name)
-
-#     #             # Check for existing records across ManualRate, VersionedRate, and Rate
-#     #             filters = {
-#     #                 'client_id': client_id,
-#     #                 'company': company_instance,
-#     #                 'source': source_instance,
-#     #                 'destination': destination_instance,
-#     #                 'freight_type': freight_type_instance,
-#     #                 'transit_time': transit_time_instance,
-#     #                 'cargotype': commodity_name_instance,
-#     #                 'effective_date': effectiveData,
-#     #                 'expiration_date': expirationData,
-#     #                 'rate': manualrate,
-#     #                 'soft_delete': False  # Exclude soft-deleted records
-#     #             }
-
-#     #             existing_manual_rate = ManualRate.objects.filter(**filters).first()
-
-#     #             # 14/JAN/25
-#     #             # existing_manual_rate = ManualRate.objects.filter(**filters).exclude(
-#     #             #     expiration_date=requestData.get('expiration_date')).first()
-
-#     #             # If all values are the same in all tables, return a message saying 'Data already exists'
-#     #             if existing_manual_rate:
-#     #                 return Response({"message": "already exists"}, status=status.HTTP_200_OK)
-
-#     #             # Get the current timestamp in a unique format
-#     #             timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
-#     #             # Generate a UUID and replace hyphens
-#     #             unique_id = f"{timestamp}{str(uuid.uuid4()).replace('-', '')[:8]}"
-#     #             common_uuid = unique_id[:24]
-    
-#     #             ManualRate.objects.create(
-#     #                 unique_uuid=common_uuid,
-#     #                 client_id=client_id,
-#     #                 company=company_instance,
-#     #                 source=source_instance,
-#     #                 destination=destination_instance,
-#     #                 freight_type=freight_type_instance,
-#     #                 transit_time=transit_time_instance,
-#     #                 cargotype=commodity_name_instance,
-#     #                 rate=manualrate,
-#     #                 free_days=requestData.get('free_days'),
-#     #                 free_days_comment=requestData.get('free_days_comment'),
-#     #                 currency=requestData.get('currency'),
-#     #                 hazardous=requestData.get('hazardous'),
-#     #                 un_number=requestData.get('un_number'),
-#     #                 direct_shipment=requestData.get('direct_shipment'),
-#     #                 spot_filed=requestData.get('spot_filed'),
-#     #                 isRateTypeStatus=requestData.get('isRateTypeStatus'),
-#     #                 vessel_name=requestData.get('vessel_name'),
-#     #                 voyage=requestData.get('voyage'),
-#     #                 haz_class=requestData.get('haz_class'),
-#     #                 packing_group=requestData.get('packing_group'),
-#     #                 transhipment_add_port=requestData.get('transhipment_add_port'),
-#     #                 effective_date=requestData.get('effective_date'),
-#     #                 expiration_date=requestData.get('expiration_date'),
-#     #                 remarks=requestData.get('remarks'),
-#     #                 terms_condition=requestData.get('terms_condition'),
-#     #             )
-
-#     #             return Response({'message': 'Manual rate processed successfully'}, status=status.HTTP_201_CREATED)
-
-#     #     except Exception as e:
-#     #         return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-#     # UPDATING FUNCTION HERE
-    
-#     def put(self, request, unique_uuid):
-#         try:
-#             with transaction.atomic():
-#                 requestData = request.data
-
-#                  # Extract client_id
-#                 client_id = request.user.client_id
-#                 if not client_id:
-#                     return Response({"detail": "Client ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-#                 # Retrieve the existing ManualRate object
-
-#                 # Retrieve the existing ManualRate object
-#                 try:
-#                     manual_rate_instance = ManualRate.objects.get(unique_uuid=unique_uuid, client_id=client_id)
-#                 except ManualRate.DoesNotExist:
-#                     return Response({"detail": "ManualRate not found."}, status=status.HTTP_404_NOT_FOUND)
-
-#                 # Fetch related instances
-#                 try:
-#                     company_instance = Company.objects.get(name=requestData.get('company'))
-#                     source_instance = Source.objects.get(name=requestData.get('source'))
-#                     destination_instance = Destination.objects.get(name=requestData.get('destination'))
-#                     freight_type_instance = FreightType.objects.get(type=requestData.get('freight_type'))
-#                     transit_time_instance = TransitTime.objects.get(time=requestData.get('transit_time'))
-#                 except (Company.DoesNotExist, Source.DoesNotExist, Destination.DoesNotExist, FreightType.DoesNotExist, TransitTime.DoesNotExist) as e:
-#                     return Response({"detail": str(e).split('DoesNotExist')[0] + " not found."}, status=status.HTTP_404_NOT_FOUND)
-
-#                 # Update fields in the ManualRate instance
-#                 manual_rate_instance.company = company_instance
-#                 manual_rate_instance.source = source_instance
-#                 manual_rate_instance.destination = destination_instance
-#                 manual_rate_instance.freight_type = freight_type_instance
-#                 manual_rate_instance.transit_time = transit_time_instance
-
-#                 # Update optional fields with fallback to current values
-#                 manual_rate_instance.cargotype = requestData.get('cargotype', manual_rate_instance.cargotype)
-#                 manual_rate_instance.rate = float(requestData.get('rate', manual_rate_instance.rate))
-#                 manual_rate_instance.direct_shipment = requestData.get('direct_shipment', manual_rate_instance.direct_shipment)
-#                 manual_rate_instance.spot_filed = requestData.get('spot_filed', manual_rate_instance.spot_filed)
-#                 manual_rate_instance.isRateTypeStatus = requestData.get('isRateTypeStatus', manual_rate_instance.isRateTypeStatus)
-#                 manual_rate_instance.hazardous = requestData.get('hazardous', manual_rate_instance.hazardous)
-#                 manual_rate_instance.un_number = requestData.get('un_number', manual_rate_instance.un_number)
-#                 manual_rate_instance.currency = requestData.get('currency', manual_rate_instance.currency)
-#                 manual_rate_instance.vessel_name = requestData.get('vessel_name', manual_rate_instance.vessel_name)
-#                 manual_rate_instance.voyage = requestData.get('voyage', manual_rate_instance.voyage)
-#                 manual_rate_instance.haz_class = requestData.get('haz_class', manual_rate_instance.haz_class)
-#                 manual_rate_instance.packing_group = requestData.get('packing_group', manual_rate_instance.packing_group)
-                
-#                 # Convert free_days to integer
-#                 free_days_value = requestData.get('free_days', manual_rate_instance.free_days)
-#                 manual_rate_instance.free_days = int(free_days_value) if free_days_value is not None else manual_rate_instance.free_days
-                
-#                 # Update additional fields
-#                 manual_rate_instance.free_days_comment = requestData.get('free_days_comment', manual_rate_instance.free_days_comment)
-#                 manual_rate_instance.transhipment_add_port = requestData.get('transhipment_add_port', manual_rate_instance.transhipment_add_port)
-                
-#                 # Handle date fields
-#                 manual_rate_instance.effective_date = requestData.get('effective_date', manual_rate_instance.effective_date)
-#                 manual_rate_instance.expiration_date = requestData.get('expiration_date', manual_rate_instance.expiration_date)
-                
-#                 manual_rate_instance.remarks = requestData.get('remarks', manual_rate_instance.remarks)
-#                 manual_rate_instance.terms_condition = requestData.get('terms_condition', manual_rate_instance.terms_condition)
-#                 manual_rate_instance.isRateUsed = requestData.get('isRateUsed', manual_rate_instance.isRateUsed)
-
-#                 # Save changes
-#                 manual_rate_instance.save()
-                
-#                 # Return success response
-#                 return Response({"detail": "ManualRate updated successfully."}, status=status.HTTP_200_OK)
-
-#         except Exception as e:
-#             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-   
-
-#     #  FOR DETELE
-
-#     def delete(self, request, unique_uuid, client_id):
-#         try:
-#         # Start a transaction to ensure atomic updates
-#             with transaction.atomic():
-#                 # Retrieve all related records with the same unique_uuid
-#                 manual_rate_instance = ManualRate.objects.get(unique_uuid=unique_uuid,client_id=client_id, soft_delete=False)
-#                 # Perform soft deletion for all records
-#                 manual_rate_instance.soft_delete = True
-#                 # Save changes
-#                 manual_rate_instance.save()
-                
-
-#                 return Response({'message': 'Records soft-deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
-
-#         except ManualRate.DoesNotExist:
-#             return Response({"detail": "ManualRate not found."}, status=status.HTTP_404_NOT_FOUND)
-#         except Exception as e:
-#             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
 class UpdatingRateFrozenInfoListView(APIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly]
 
@@ -2038,34 +1537,7 @@ class UpdatingRateFrozenInfoListView(APIView):
             return Response({"error": "The requested resource does not exist."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
-        
-# class UpadatingRateFrozenInfoListView(APIView):
-#     permission_classes = [IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly]
-#     # permission_classes = [IsAuthenticated]
-
-#     def put(self, request, unique_uuid):
-#         requestData = request.data
-#         isRateUsed = requestData.get('isRateUsed', None)
-#         client_id = request.user.client_id  # Assuming `client_id` is associated with the authenticated user.
-
-
-#         if isRateUsed is None:
-#             return Response({"error": "isRateUsed field is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Fetch the ManualRate object (assuming unique_uuid refers to ManualRate's primary key)
-#         try:
-#             manual_rate = ManualRate.objects.get(unique_uuid=unique_uuid, client_id=client_id)
-#         except ManualRate.DoesNotExist:
-#             return Response({"error": "ManualRate not found"}, status=status.HTTP_404_NOT_FOUND)
-
-#         # Update ManualRate
-#         manual_rate.isRateUsed = isRateUsed
-#         manual_rate.save()
-
-#         return Response({"message": "isRateUsed updated successfully"}, status=status.HTTP_200_OK)
-
-
+                   
 class CustomerInfoListView(APIView):
     permission_classes = [IsAuthenticated, IsSystemOrClientAdmin | IsClientUserEditAndRead]
 
@@ -2142,76 +1614,6 @@ class CustomerInfoListView(APIView):
         except Exception as e:
             return Response({'error': f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-# class CustomerInfoListView(APIView):
-#     permission_classes = [IsAuthenticated,IsSystemOrClientAdmin|IsClientUserEditAndRead]
-#     # permission_classes = [IsAuthenticated]
-
-#     # FOR GET
-#     def get(self, request):
-#         try:
-#             client_id = request.user.client_id  # Assuming the user is associated with a client_id
-#             customer_info = CustomerInfo.objects.filter(client_id=client_id)
-#             customer_info_serializer = CustomerInfoSerializer(customer_info, many=True)
-#             return Response(customer_info_serializer.data, status=status.HTTP_200_OK)
-#         except Exception as e:
-#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
-#     # FOR POST
-#     def post(self, request):
-#         try:
-#             requestData = request.data
-
-#             # Validate required fields
-#             required_fields = ['company_name', 'cust_name', 'cust_email', 'sales_represent', 'phone', 'percentage', 'terms_condition']
-#             for field in required_fields:
-#                 if not requestData.get(field):
-#                     return Response({"error": f"{field} is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-#             # Create the CustomerInfo instance
-#             customer_serializer = CustomerInfo.objects.create(
-#                 client_id=request.user.client_id,  # Associate with the client's ID
-#                 company_name=requestData.get('company_name'),
-#                 cust_name=requestData.get('cust_name'),
-#                 cust_email=requestData.get('cust_email'),
-#                 sales_represent=requestData.get('sales_represent'),
-#                 phone=requestData.get('phone'),
-#                 percentage=requestData.get('percentage'),
-#                 terms_condition=requestData.get('terms_condition'),
-#             )
-
-#             return Response({'message': 'Customer created successfully' , 'data': customer_serializer.data}, status=status.HTTP_201_CREATED)
-#         except Exception as e:
-#             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-    
-#      #  FOR UPDATE BY ID 
-#     def put(self, request,id):
-#             try:
-#                 requestData = request.data
-#                 client_id = request.user.client_id  # Assuming the user is associated with a client_id
-
-#                 try:
-#                     customer_instance = CustomerInfo.objects.get(id=id,client_id=client_id)
-#                 except CustomerInfo.DoesNotExist:
-#                     return Response({"detail": "Customer not found or unauthorized access."}, status=status.HTTP_404_NOT_FOUND)
-
-#                 customer_instance.company_name= requestData.get('company_name', customer_instance.company_name)
-#                 customer_instance.cust_name= requestData.get('cust_name', customer_instance.cust_name)
-#                 customer_instance.sales_represent= requestData.get('sales_represent', customer_instance.sales_represent)
-#                 customer_instance.phone= requestData.get('phone', customer_instance.phone)
-#                 customer_instance.percentage= requestData.get('percentage', customer_instance.percentage)
-#                 customer_instance.terms_condition= requestData.get('terms_condition', customer_instance.terms_condition)
-               
-#                  # Save changes
-#                 customer_instance.save()
-#                 # Return success response
-#                 return Response({"detail": "Customer updated successfully."}, status=status.HTTP_200_OK) 
-            
-#             except CustomerInfo.DoesNotExist:
-#                 return Response({"error": "Customer not found"}, status=status.HTTP_404_NOT_FOUND)  
-
 class CustomerInfoDetailsListView(APIView):
     permission_classes = [IsAuthenticated, IsSystemOrClientAdmin | IsClientUserEditAndRead]
 
@@ -2235,61 +1637,6 @@ class CustomerInfoDetailsListView(APIView):
             return Response({"error": "You do not have permission to access this resource."}, status=status.HTTP_403_FORBIDDEN)
         except Exception as e:
             return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# class CutomerInfoDetailsListView(APIView):
-#      #  FOR GET BY ID 
-#     def get(self, request, id):
-#         try:
-#             # Retrieve the object based on the provided id
-#             customer_info = CustomerInfo.objects.get(id=id)
-            
-#             # Serialize the object
-#             customer_info_serializer = CustomerInfoSerializer(customer_info)
-            
-#             # Return the serialized data
-#             return Response(customer_info_serializer.data, status=status.HTTP_200_OK)
-#         except CustomerInfo.DoesNotExist:
-#             # Handle case where object with the given id does not exist
-#             return Response({"error": f"CustomerInfo with id {id} does not exist."}, status=status.HTTP_404_NOT_FOUND)
-#         except Exception as e:
-#             # Handle any other errors
-#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-# class RegistrationInfoListView(APIView):
-#     permission_classes = [IsAuthenticated,IsSystemOrClientAdmin]
-#     # permission_classes = [IsAuthenticated]
-
-#     #  FOR GET 
-#     def get(self, request):
-#         customer_info = Registration.objects.all()
-#         customer_info_serializer = RegistrationSerializer(customer_info, many=True)
-#         return Response(customer_info_serializer.data)
-    
-#     # FOR POST
-#     def post(self, request):
-#         try:
-#             requestData = request.data
-#             name = requestData.get('name')
-#             email = requestData.get('email')
-#             username = requestData.get('username')
-#             phone = requestData.get('phone')
-#             password = requestData.get('password')
-            
-            
-#             Registration.objects.create(
-#             name=name,
-#             email=email,
-#             username=username,
-#             phone=phone,
-#             password=password
-           
-#             )
-#             return Response({'message': 'Registration successfully'}, status=status.HTTP_201_CREATED)
-            
-#         except Exception as err:
-#             return Response({'details': str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class CommodityList(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser]
@@ -2337,31 +1684,6 @@ class CommodityList(generics.ListCreateAPIView):
             return Response({"error": f"An unexpected error occurred while creating the commodity: {str(e)}"}, 
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-# class CommodityList(generics.ListCreateAPIView):
-#     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
-#     serializer_class = CommoditySerializer
-
-#     def get_queryset(self):
-#         """
-#         Filter the queryset to return data only relevant to the user's client or role.
-#         """
-#         user = self.request.user
-#         if hasattr(user, 'client_id'):  # If user is associated with a client
-#             return Comodity.objects.filter(client_id=user.client_id)
-#         return Comodity.objects.all()  # Admins or system users can access all
-
-#     def perform_create(self, serializer):
-#         """
-#         Automatically associate the created commodity with the user's client, if applicable.
-#         """
-#         user = self.request.user
-#         if hasattr(user, 'client_id'):
-#             serializer.save(client_id=user.client_id)
-#         else:
-#             serializer.save()  # Save normally for admin/system users
-
-
 class IncoTermList(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser]
     serializer_class = IncoTermSerializer
@@ -2407,30 +1729,6 @@ class IncoTermList(generics.ListCreateAPIView):
         except Exception as e:
             return Response({"error": f"An unexpected error occurred while creating the inco term: {str(e)}"}, 
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# class IncoTermList(generics.ListCreateAPIView):
-#     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser]
-#     serializer_class = IncoTermSerializer
-
-#     def get_queryset(self):
-#         """
-#         Filter the queryset to return data only relevant to the user's client or role.
-#         """
-#         user = self.request.user
-#         if hasattr(user, 'client_id'):  # If user is associated with a client
-#             return IncoTerm.objects.filter(client_id=user.client_id)
-#         return IncoTerm.objects.all()  # Admins or system users can access all
-
-#     def perform_create(self, serializer):
-#         """
-#         Automatically associate the created inco term with the user's client, if applicable.
-#         """
-#         user = self.request.user
-#         if hasattr(user, 'client_id'):
-#             serializer.save(client_id=user.client_id)
-#         else:
-#             serializer.save()  # Save normally for admin/system users
 
 # ACTIVITY LOG FUNCTION
 
@@ -2480,13 +1778,20 @@ class ActivityLogView(APIView):
         except Exception as err:
             return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# CLIENT INFO 
-# class ClientinfoViewSet(viewsets.ModelViewSet):
-#     serializer_class = ClientinfoSerializer
-#     permission_classes = permission_classes = [IsAuthenticated, IsSystemAdministrator]  # Restrict this to admin users
-#     queryset = Clientinfo.objects.all()
 
 class ClientinfoViewSet(APIView):
+    
+    #[GET]
+    def get(self, request):
+        try:
+            client_info = Clientinfo.objects.all()
+            client_info_serializer = ClientinfoSerializer(client_info, many=True)
+            return Response(client_info_serializer.data)
+
+        except Exception as err:
+            return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    #[POST]
     def post(self, request):
         try:
             # # Extract request data
@@ -2542,3 +1847,4 @@ class ClientinfoViewSet(APIView):
 
         except Exception as err:
             return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
