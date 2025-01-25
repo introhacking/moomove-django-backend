@@ -1080,19 +1080,22 @@ class ManualRateWithRateWithVersionsAPIView(APIView):
         try:
             client_id = request.user.client_id  # Fetch the client_id from the logged-in user
             
-            # Ensure the user is associated with a client
             if not client_id:
                 raise PermissionDenied("You are not associated with any client.")
 
-            # Retrieve manual rates for the given company and client's client_id
+            # Fetch manual rates along with related shipping schedules
+            # Retrieve schedules related to the manual rates
+
             manual_rates = ManualRate.objects.filter(
                 company_id=company_id, client_id=client_id, soft_delete=False
-            )
-            
-            # If no manual rates are found, raise an exception
+            ).prefetch_related('shipping_schedules')  # Optimize query
+
+            # schedules = ShippingSchedule.objects.filter(manual_rate_id__in=manual_rates.values_list('id', flat=True))
+
+
             if not manual_rates.exists():
                 raise ManualRate.DoesNotExist("ManualRate version not found for the company.")
-            
+
             manual_rates_serializer = ManualRateSerializer(manual_rates, many=True)
             return Response(manual_rates_serializer.data, status=status.HTTP_200_OK)
 
@@ -1142,13 +1145,15 @@ class ManualRateListView(APIView):
                     return Response({"error": "Invalid data format. Expected a single rate data object."}, status=status.HTTP_400_BAD_REQUEST)
 
                 # Required fields
-                required_fields = ["company", "source", "destination", "freight_type", "rate", "currency", 
-                                "effective_date", "expiration_date"]
+                required_fields = [
+                    "company", "source", "destination", "freight_type", "rate", "currency",
+                    "effective_date", "expiration_date"
+                ]
                 for field in required_fields:
                     if field not in rate_data or not rate_data[field]:
                         return Response({"error": f"Missing or empty required field: {field}"}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Extracting field values
+                # Extract field values
                 company_name = rate_data.get('company')
                 source_name = rate_data.get('source')
                 destination_name = rate_data.get('destination')
@@ -1177,14 +1182,14 @@ class ManualRateListView(APIView):
 
                 # Retrieve or create related entities
                 company_instance, _ = Company.objects.get_or_create(name=company_name)
-                source_instance = Source.objects.filter(name=source_name).first() or Source.objects.create(name=source_name)
-                destination_instance = Destination.objects.filter(name=destination_name).first() or Destination.objects.create(name=destination_name)
-                freight_type_instance = FreightType.objects.filter(type=freight_type_name).first() or FreightType.objects.create(type=freight_type_name)
-                transit_time_instance = TransitTime.objects.filter(time=transit_time).first() or TransitTime.objects.create(time=transit_time)
-                commodity_instance = Comodity.objects.filter(name=cargotype_name).first() or Comodity.objects.create(name=cargotype_name)
+                source_instance = Source.objects.get_or_create(name=source_name)[0]
+                destination_instance = Destination.objects.get_or_create(name=destination_name)[0]
+                freight_type_instance = FreightType.objects.get_or_create(type=freight_type_name)[0]
+                transit_time_instance = TransitTime.objects.get_or_create(time=transit_time)[0]
+                commodity_instance = Comodity.objects.get_or_create(name=cargotype_name)[0]
 
-                # Check if a record with ALL the same values exists in ManualRate
-                existing_manual_rate = ManualRate.objects.filter(
+                # Check if an exact record already exists
+                exact_match = ManualRate.objects.filter(
                     company=company_instance,
                     source=source_instance,
                     destination=destination_instance,
@@ -1211,8 +1216,8 @@ class ManualRateListView(APIView):
                     terms_condition=terms_condition
                 ).exists()
 
-                if existing_manual_rate:
-                    return Response({"message": f"Duplicate record detected. No new entry created."}, status=status.HTTP_400_BAD_REQUEST)
+                if exact_match:
+                    return Response({"message": "Duplicate record found. No new entry created."}, status=status.HTTP_400_BAD_REQUEST)
 
                 # Generate a unique UUID for the new manual rate
                 timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
@@ -1249,6 +1254,7 @@ class ManualRateListView(APIView):
                     terms_condition=terms_condition,
                 )
 
+                # Create shipping schedules
                 for schedule in shipping_schedules:
                     departure_date = schedule.get('departure_date')
                     arrival_date = schedule.get('arrival_date')
@@ -1256,9 +1262,9 @@ class ManualRateListView(APIView):
                     si_cut_off_date = schedule.get('si_cut_off_date')
                     gate_opening_date = schedule.get('gate_opening_date')
                     service = schedule.get('service')
-                    
-                    # Validate schedule dates before inserting
-                    if not (departure_date and arrival_date and port_cut_off_date and si_cut_off_date and gate_opening_date):
+
+                    # Validate schedule dates
+                    if not all([departure_date, arrival_date, port_cut_off_date, si_cut_off_date, gate_opening_date]):
                         raise ValueError("Shipping schedule dates are incomplete.")
 
                     if departure_date > arrival_date or port_cut_off_date > departure_date or si_cut_off_date > port_cut_off_date or gate_opening_date > si_cut_off_date:
@@ -1275,16 +1281,14 @@ class ManualRateListView(APIView):
                         service=service
                     )
 
-                return_response = {
+                return Response({
                     'id': manual_rate.id,
                     'company': company_name,
                     'source': source_name,
                     'destination': destination_name,
                     'freight_type': freight_type_name,
                     'message': 'Record created successfully'
-                }
-
-                return Response(return_response, status=status.HTTP_201_CREATED)
+                }, status=status.HTTP_201_CREATED)
 
         except ValueError as ve:
             return Response({"message": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
