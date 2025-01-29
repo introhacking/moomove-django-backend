@@ -34,6 +34,11 @@ class SourceInline(admin.TabularInline):
     fields = ['name', 'unique_uuid', 'soft_delete']
     readonly_fields = ['unique_uuid']
 
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
+
 
 class DestinationInline(admin.TabularInline):
     model = Destination
@@ -41,17 +46,32 @@ class DestinationInline(admin.TabularInline):
     fields = ['name', 'unique_uuid', 'soft_delete']
     readonly_fields = ['unique_uuid']
 
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
+
 
 class TransitTimeInline(admin.TabularInline):
     model = TransitTime
     extra = 1
     fields = ['time']
 
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
+
 
 class FreightTypeInline(admin.TabularInline):
     model = FreightType
     extra = 1
     fields = ['type', 'soft_delete']
+
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
 
 
 class CompanyInline(admin.TabularInline):
@@ -60,6 +80,11 @@ class CompanyInline(admin.TabularInline):
     fields = ['name', 'unique_uuid', 'soft_delete']
     readonly_fields = ['unique_uuid']
 
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
+
 
 class ClientTemplateCompanyInline(admin.TabularInline):
     model = ClientTemplateCompany
@@ -67,17 +92,32 @@ class ClientTemplateCompanyInline(admin.TabularInline):
     fields = ['name', 'unique_uuid', 'soft_delete']
     readonly_fields = ['unique_uuid']
 
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
+
 
 class ComodityInline(admin.TabularInline):
     model = Comodity
     extra = 1
     fields = ['name']
 
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
+
 
 class IncoTermInline(admin.TabularInline):
     model = IncoTerm
     extra = 1
     fields = ['rule']
+
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
 
 
 # Admin configuration for Clientinfo
@@ -105,12 +145,22 @@ class SourceAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     list_filter = ('soft_delete',)
 
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
+
 
 @admin.register(Destination)
 class DestinationAdmin(admin.ModelAdmin):
     list_display = ('name', 'client', 'unique_uuid', 'soft_delete')
     search_fields = ('name',)
     list_filter = ('soft_delete',)
+
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
 
 
 @admin.register(VersionedRate)
@@ -119,6 +169,11 @@ class VersionedRateAdmin(admin.ModelAdmin):
     search_fields = ('client__client_name', 'company__name', 'source__name', 'destination__name')
     list_filter = ('currency', 'is_current')
 
+    def save_model(self, request, obj, form, change):
+        if not obj.client:
+            obj.client = request.user.client
+        obj.save()
+
 
 @admin.register(Rate)
 class RateAdmin(admin.ModelAdmin):
@@ -126,7 +181,7 @@ class RateAdmin(admin.ModelAdmin):
     search_fields = ('client__client_name', 'company__name', 'source__name', 'destination__name')
     list_filter = ('currency',)
 
-# SHIPPING SCHEDULE
+# [ SHIPPING SCHEDULE ]
 class ShippingScheduleInline(admin.TabularInline):
     model = ShippingSchedule
     extra = 1  # Number of blank forms to show
