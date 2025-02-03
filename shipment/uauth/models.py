@@ -71,7 +71,7 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):  # Added PermissionsMixin for Django permissions compatibility
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, null=True, blank=True,default='Grace_20250107173155')
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE)
     email = models.EmailField(unique=True, null=False, blank=False, default="placeholder@example.com")
     name = models.CharField(max_length=255)
     mobile_number = models.CharField(max_length=15, blank=True, null=True)
