@@ -78,7 +78,7 @@ class ImportExcelData(APIView):
         company_id = request.data.get('company_id')
         client_id = request.data.get('client_id')  # Extract client_id from the request
         # [ ADDED ON 29 / JAN/ 25 ]
-        logger.info(f"Logged-in user: {request.user}, client_id: {client_id}")
+        logger.info(f"Logged-in user: {request.user}, client_id: {client_id}, company_id :{company_id}")
 
         if not company_id:
             return Response({"error": config['ID_REQUIRED']}, status=status.HTTP_400_BAD_REQUEST)
@@ -131,9 +131,15 @@ class ImportExcelData(APIView):
                 effective_date = item["Effective Date"]
                 expiration_date = item["Expiration Date"]
 
-                source, _ = Source.objects.get_or_create(name=source_name)
-                destination, _ = Destination.objects.get_or_create(name=destination_name)
-                transit_time, _ = TransitTime.objects.get_or_create(time=str(transit_time_value))
+                # source, _ = Source.objects.get_or_create(name=source_name)
+                # destination, _ = Destination.objects.get_or_create(name=destination_name)
+                # transit_time, _ = TransitTime.objects.get_or_create(time=str(transit_time_value))
+                
+                #[ 31/JAN/25]
+                source, _ = Source.objects.get_or_create(name=source_name, client_id=company.client_id ) #client_id=client_id
+                destination, _ = Destination.objects.get_or_create(name=destination_name, client_id=company.client_id  )
+                # transit_time, _ = TransitTime.objects.get_or_create(time=str(transit_time_value ,client_id=company.client_id ))
+                transit_time, _ = TransitTime.objects.get_or_create(time=str(transit_time_value), defaults={"client_id": company.client_id})
 
                 for ft in freight_types:
                     rate_value = item.get(ft)
@@ -193,7 +199,9 @@ class ImportExcelData(APIView):
                                     rate=rate_value,
                                     effective_date=effective_date,
                                     expiration_date=expiration_date,
-                                    is_current=False
+                                    is_current=False,
+                                    # [ 31/JAN/25]
+                                    client_id=client_id
                                 )
 
                                 # Update the existing rate
@@ -217,7 +225,9 @@ class ImportExcelData(APIView):
                                 rate=rate_value,
                                 effective_date=effective_date,
                                 expiration_date=expiration_date,
-                                is_current=True
+                                is_current=True,
+                                # [ 31/JAN/25]
+                                client_id=client_id
                             )
                             Rate.objects.create(
                                 company=company,
@@ -228,7 +238,9 @@ class ImportExcelData(APIView):
                                 rate=rate_value,
                                 effective_date=effective_date,
                                 expiration_date=expiration_date,
-                                version=versioned_rate
+                                version=versioned_rate,
+                                # [ 31/JAN/25]
+                                client_id=client_id
                             )
             return Response({"message": f"Excel {config['SUCCESS_UPLOADED_MESSAGE']}", "results": results}, status=status.HTTP_201_CREATED)
 
@@ -248,15 +260,14 @@ class ExtractWordTableView(APIView):
             file_obj = request.FILES['file']
 
             # Extract company ID from the request data
-            # company_id = request.data.get('company_id')
-
+            company_id = request.data.get('company_id')
             client_id = request.data.get('client_id')
-            logger.info(f"Logged-in user: {request.user}, client_id: {client_id}")
+            
+            logger.info(f"Logged-in user: {request.user}, client_id: {client_id}, company_id :{company_id}")
             if not client_id:
                 return JsonResponse({"error": "Client ID is required"}, status=status.HTTP_400_BAD_REQUEST)
             
             # Extract company ID from the request data
-            company_id = request.data.get('company_id')
             if not company_id:
                 return JsonResponse({"error": config['ID_REQUIRED']}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -325,13 +336,12 @@ class ExtractWordTableView(APIView):
         return formatted_data
 
     def save_imported_data(self, results, company_id):
-        client_id = self.request.data.get('client_id')  # Assuming `client_id` is passed in the request
+        client_id = self.request.data.get('client_id')  # Assuming client_id is passed in the request
 
         if not client_id:
             raise ValueError("Client ID is required for filtering rates.")
-        
         freight_types = ["20'GP", "40'HC"]  # Define the freight types you are processing
-
+        company = get_object_or_404(ClientTemplateCompany, id=company_id)
         for item in results:
             source_name = item["Origin Port"]
             destination_name = item["Destination Port"]
@@ -340,15 +350,15 @@ class ExtractWordTableView(APIView):
             expiration_date = item["Expiration Date"]
             print(f"Source: {source_name}, Destination: {destination_name}, Transit Time: {transit_time_value}, "
                 f"Effective Date: {effective_date}, Expiration Date: {expiration_date}")
-            source, _ = Source.objects.get_or_create(name=source_name)
-            destination, _ = Destination.objects.get_or_create(name=destination_name)
-            transit_time, _ = TransitTime.objects.get_or_create(time=str(transit_time_value))
-
+            source, _ = Source.objects.get_or_create(name=source_name, client_id=company.client_id)
+            destination, _ = Destination.objects.get_or_create(name=destination_name, client_id=company.client_id)
+            transit_time, _ = TransitTime.objects.get_or_create(time=str(transit_time_value), defaults={"client_id": company.client_id})
+    
             for ft in freight_types:
                 rate_value = item.get(ft)
                 if rate_value is not None:
                     # company = get_object_or_404(Company, id=company_id) # by manish
-                    company = get_object_or_404(ClientTemplateCompany, id=company_id)
+                    # company = get_object_or_404(ClientTemplateCompany, id=company_id)
 
                     freight_type, _ = FreightType.objects.get_or_create(type=ft)
 
@@ -367,7 +377,8 @@ class ExtractWordTableView(APIView):
                         source=source,
                         destination=destination,
                         freight_type=freight_type,
-                        client_id=client_id
+                        client_id=client_id 
+
                     ).order_by('-id')
                     # Exclude the current existing_rate
                     if existing_rate:
@@ -396,7 +407,8 @@ class ExtractWordTableView(APIView):
                                 rate=rate_value,
                                 effective_date=effective_date,
                                 expiration_date=expiration_date,
-                                is_current=False
+                                is_current=False,
+                                client_id=client_id
                             )
                             # Update the existing rate
                             existing_rate.rate = rate_value
@@ -417,7 +429,8 @@ class ExtractWordTableView(APIView):
                             rate=rate_value,
                             effective_date=effective_date,
                             expiration_date=expiration_date,
-                            is_current=True
+                            is_current=True,
+                            client_id=client_id
                         )
                         Rate.objects.create(
                             company=company,
@@ -428,8 +441,9 @@ class ExtractWordTableView(APIView):
                             rate=rate_value,
                             effective_date=effective_date,
                             expiration_date=expiration_date,
-                            version=versioned_rate
-                        )
+                            version=versioned_rate,
+                            client_id=client_id
+        )
 
 class ExtractPDFTableView(APIView):
     permission_classes=[IsAuthenticated,IsSystemOrClientAdmin|IsClientUserEditAndRead]
@@ -806,6 +820,7 @@ class RateWithVersionsAPIView(APIView):
         )
 
 
+
 class CompanyListAPIView(APIView):
     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser]
 
@@ -893,7 +908,6 @@ class ClientTemplateCompanyAPIView(APIView):
             )
 
 
-
 class SourceListAPIView(APIView):
     permission_classes = [
         IsAuthenticated,
@@ -922,8 +936,7 @@ class SourceListAPIView(APIView):
                 {"error": f"An unexpected error occurred: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-   
-
+  
 
 class DestinationListAPIView(APIView):
     permission_classes = [
@@ -954,8 +967,7 @@ class DestinationListAPIView(APIView):
                 {"error": f"An unexpected error occurred: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-    
+   
 
 class FreightTypeListAPIView(APIView):
     permission_classes = [
@@ -1025,8 +1037,7 @@ class FreightTypeListAPIView(APIView):
                 {'detail': f"An unexpected error occurred: {str(e)}"}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-           
-
+        
 
 class RateListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser]
@@ -1053,7 +1064,7 @@ class RateListView(generics.ListAPIView):
                 'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
                 'expiration_date', 'un_number', 'vessel_name', 'cargotype', 'voyage', 'hazardous', 'terms_condition',
                 'source_id', 'source_name', 'destination_id', 'destination_name', 'transit_time_id', 'transit_time',
-                'freight_type_id', 'freight_type','remarks','schedule_id','departure_date','arrival_date','port_cut_off_date','si_cut_off_date', 'gate_opening_date','service'
+                'freight_type_id', 'freight_type','remarks','shipping_schedule_id','departure_date','arrival_date','port_cut_off_date','si_cut_off_date', 'gate_opening_date','service'
             ]
 
             # print("Columns from DB:", [desc[0] for desc in cursor.description])
@@ -1062,59 +1073,9 @@ class RateListView(generics.ListAPIView):
             # columns = config.get("RATE_LIST_QUERYSET" , "").split(",")
 
             # Convert the result into a list of dictionaries
-
             data = [dict(zip(columns, row)) for row in rows] #working
-            
+
             return data
-
-
-#[NEW UPDATE ON 25/JAN/25]
-# class ManualRateWithRateWithVersionsAPIView(APIView):
-#     permission_classes = [
-#         IsAuthenticated,
-#         IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly,
-#     ]
-
-#     def get(self, request, company_id):
-#         try:
-#             client_id = request.user.client_id  # Fetch client_id from logged-in user
-            
-#             if not client_id:
-#                 raise PermissionDenied("You are not associated with any client.")
-
-#             # Fetch manual rates for the given company and client_id
-#             manual_rates = ManualRate.objects.filter(
-#                 company_id=company_id, client_id=client_id, soft_delete=False
-#             )
-
-#             if not manual_rates.exists():
-#                 raise ManualRate.DoesNotExist("ManualRate version not found for the company.")
-            
-#             # Retrieve schedules related to the manual rates
-#             schedules = ShippingSchedule.objects.filter(manual_rate_id__in=manual_rates.values_list('id', flat=True))
-
-#             # Serialize data
-#             manual_rates_serializer = ManualRateSerializer(manual_rates, many=True)
-#             schedule_serializer = ShippingScheduleSerializer(schedules, many=True)
-
-#             response_data = {
-#                 "manual_rates": manual_rates_serializer.data,
-#                 "schedules": schedule_serializer.data,
-#             }
-#             print(response_data)
-#             return Response(response_data, status=status.HTTP_200_OK)
-
-#         except ManualRate.DoesNotExist as e:
-#             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
-        
-#         except PermissionDenied as e:
-#             return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
-
-#         except Exception as e:
-#             return Response(
-#                 {"error": f"An unexpected error occurred: {str(e)}"},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
 
 
 class ManualRateWithRateWithVersionsAPIView(APIView):
@@ -1130,24 +1091,16 @@ class ManualRateWithRateWithVersionsAPIView(APIView):
             if not client_id:
                 raise PermissionDenied("You are not associated with any client.")
 
-            # Fetch manual rates along with related shipping schedules
             # Retrieve schedules related to the manual rates
 
             manual_rates = ManualRate.objects.filter(
                 company_id=company_id, client_id=client_id, soft_delete=False
             ).prefetch_related('shipping_schedules')  # Optimize query
 
-            # schedules = ShippingSchedule.objects.filter(manual_rate_id__in=manual_rates.values_list('id', flat=True))
-
-
             if not manual_rates.exists():
                 raise ManualRate.DoesNotExist("ManualRate version not found for the company.")
 
             manual_rates_serializer = ManualRateSerializer(manual_rates, many=True)
-            # schedule_serializer = ShippingScheduleSerializer(schedules, many=True)
-
-            # print(schedule_serializer.data)
-            # print(manual_rates_serializer.data)
             return Response(manual_rates_serializer.data, status=status.HTTP_200_OK)
 
         except ManualRate.DoesNotExist as e:
@@ -1161,8 +1114,6 @@ class ManualRateWithRateWithVersionsAPIView(APIView):
                 {"error": f"An unexpected error occurred: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-
 
 class ManualRateListView(APIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly]
@@ -1546,7 +1497,7 @@ class ManualRateListView(APIView):
         
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-     
+        
 
 class UpdatingRateFrozenInfoListView(APIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly]
@@ -1579,7 +1530,6 @@ class UpdatingRateFrozenInfoListView(APIView):
         except Exception as e:
             return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 
-
 
 class CustomerInfoListView(APIView):
     permission_classes = [IsAuthenticated, IsSystemOrClientAdmin | IsClientUserEditAndRead]
@@ -1676,8 +1626,7 @@ class CustomerInfoListView(APIView):
             return Response({"error": "You do not have permission to update this resource."}, status=status.HTTP_403_FORBIDDEN)
         except Exception as e:
             return Response({'error': f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-  
+ 
 
 class CustomerInfoDetailsListView(APIView):
     permission_classes = [IsAuthenticated, IsSystemOrClientAdmin | IsClientUserEditAndRead]
@@ -1752,6 +1701,7 @@ class CommodityList(generics.ListCreateAPIView):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+
 class IncoTermList(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser]
     serializer_class = IncoTermSerializer
@@ -1797,6 +1747,7 @@ class IncoTermList(generics.ListCreateAPIView):
         except Exception as e:
             return Response({"error": f"An unexpected error occurred while creating the inco term: {str(e)}"}, 
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 # ACTIVITY LOG FUNCTION
@@ -1848,11 +1799,6 @@ class ActivityLogView(APIView):
             return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # CLIENT INFO 
-# class ClientinfoViewSet(viewsets.ModelViewSet):
-#     serializer_class = ClientinfoSerializer
-#     permission_classes = permission_classes = [IsAuthenticated, IsSystemAdministrator]  # Restrict this to admin users
-#     queryset = Clientinfo.objects.all()
-
 class ClientinfoViewSet(APIView):
     
     #[GET]
@@ -1897,12 +1843,7 @@ class ClientinfoViewSet(APIView):
             reportingCurrency = requestData.get('reporting_currency')
             region = requestData.get('region')
 
-                # Validation for required fields
-                # if not all([client_name, email, address, phone_no, invoicing_currency, reporting_currency, region]):
-                #     return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
-
-                # Create an activity log linked to the logged-in user
-                # Uncomment this block to save the data
+            # Uncomment this block to save the data
             with transaction.atomic():    
                 Clientinfo.objects.create(
                     client_id=unique_id,

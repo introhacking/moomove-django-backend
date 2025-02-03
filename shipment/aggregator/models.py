@@ -5,6 +5,7 @@ from datetime import datetime
 from django.conf import settings
 
 
+
 # CLIENT INFO 
 # 07/Jan/2025
 class Clientinfo(models.Model):
@@ -232,7 +233,7 @@ class CustomerInfo(models.Model):
 
     def __str__(self):
         return f"{self.company_name} | {self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
-     
+
 
 # ACTIVITY LOG 
 # 30/Dec/2024

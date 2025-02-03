@@ -38,8 +38,7 @@ class ClientTemplateCompanySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("User is not associated with any client.")
         if request_user_client != data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
-        return data    
-  
+        return data      
 
 class SourceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -53,7 +52,7 @@ class SourceSerializer(serializers.ModelSerializer):
         if request_user_client != data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
-
+    
 
 class DestinationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -186,7 +185,7 @@ class RateSerializer1(serializers.Serializer):  # Change to `serializers.Seriali
     freight_type_id = serializers.IntegerField()
     freight_type = serializers.CharField()
     remarks = serializers.CharField()
-    schedule_id = serializers.IntegerField()
+    shipping_schedule_id = serializers.IntegerField()
     departure_date = serializers.DateField()
     arrival_date = serializers.DateField()
     port_cut_off_date = serializers.DateField()
@@ -202,7 +201,7 @@ class RateSerializer1(serializers.Serializer):  # Change to `serializers.Seriali
             'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
             'expiration_date', 'un_number', 'vessel_name', 'cargotype', 'voyage', 'hazardous', 'terms_condition',
             'source_id', 'source_name', 'destination_id', 'destination_name', 'transit_time_id', 'transit_time',
-            'freight_type_id', 'freight_type','remarks','schedule_id','departure_date','arrival_date','port_cut_off_date','si_cut_off_date', 'gate_opening_date','service' 
+            'freight_type_id', 'freight_type','remarks','shipping_schedule_id','departure_date','arrival_date','port_cut_off_date','si_cut_off_date', 'gate_opening_date','service' 
         ]
     
     def validate(self, data):
@@ -274,7 +273,7 @@ class CustomerInfoSerializer(serializers.ModelSerializer):
         if request_user_client != data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
-
+    
 
 class IncoTermSerializer(serializers.ModelSerializer):
     class Meta:
