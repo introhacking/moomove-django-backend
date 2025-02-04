@@ -244,7 +244,6 @@ class ActivityLog(models.Model):
         related_name='activity_logs',
         null=True 
     )
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='activityLog')
     action_type = models.CharField(max_length=150)
     action_status = models.BooleanField(null=True)
     source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, blank=True)
