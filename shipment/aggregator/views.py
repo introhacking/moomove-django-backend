@@ -1183,6 +1183,12 @@ class ManualRateListView(APIView):
                 expiration_date = rate_data.get('expiration_date')
                 remarks = rate_data.get('remarks')
                 terms_condition = rate_data.get('terms_condition')
+                charge = rate_data.get('charge')
+                charge_name = rate_data.get('charge_name')
+                charge_flag = rate_data.get('charge_flag')
+                pp_cc = rate_data.get('pp_cc')
+                cost_per_unit = rate_data.get('cost_per_unit')
+                note = rate_data.get('note')
                 shipping_schedules = rate_data.get('shipping_schedules', [])
 
                 # Retrieve or create related entities
@@ -1259,6 +1265,12 @@ class ManualRateListView(APIView):
                     expiration_date=expiration_date,
                     remarks=remarks,
                     terms_condition=terms_condition,
+                    charge=charge,
+                    charge_name=charge_name,
+                    charge_flag=charge_flag,
+                    pp_cc=pp_cc,
+                    cost_per_unit=cost_per_unit,
+                    note=note
                 )
 
                 # Create shipping schedules
@@ -1369,6 +1381,12 @@ class ManualRateListView(APIView):
                 expiration_date = rate_data.get('expiration_date')
                 remarks = rate_data.get('remarks')
                 terms_condition = rate_data.get('terms_condition')
+                charge = rate_data.get('charge')
+                charge_name = rate_data.get('charge_name')
+                charge_flag = rate_data.get('charge_flag')
+                pp_cc = rate_data.get('pp_cc')
+                cost_per_unit = rate_data.get('cost_per_unit')
+                note = rate_data.get('note')
                 shipping_schedules = rate_data.get('shipping_schedules', [])
 
                 # Retrieve or create related entities
@@ -1436,6 +1454,12 @@ class ManualRateListView(APIView):
                 manual_rate.expiration_date = expiration_date
                 manual_rate.remarks = remarks
                 manual_rate.terms_condition = terms_condition
+                manual_rate.charge=charge
+                manual_rate.charge_name=charge_name
+                manual_rate.charge_flag=charge_flag
+                manual_rate.pp_cc=pp_cc
+                manual_rate.cost_per_unit=cost_per_unit
+                manual_rate.note=note
                 manual_rate.save()
 
                 # Update shipping schedules

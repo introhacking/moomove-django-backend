@@ -210,7 +210,13 @@ class ManualRate(models.Model):
     remarks = models.TextField(blank=True, null=True)
     terms_condition = models.CharField(blank=True, null=True)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
-
+    # [ 10 / FEB / 25]
+    charge = models.CharField(max_length=50, null=True,blank=True)
+    charge_name = models.CharField(max_length=50, null=True,blank=True)
+    charge_flag = models.CharField(max_length=50, null=True,blank=True)
+    pp_cc = models.CharField(max_length=50, null=True,blank=True)
+    cost_per_unit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    note = models.CharField(max_length=255, null=True,blank=True)
 
     class Meta:
         unique_together = ('company', 'destination','source', 'direct_shipment','spot_filed', 'vessel_name','voyage', 'haz_class', 'packing_group', 'free_days', 'free_days_comment' , 'hazardous' , 'un_number',  'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate', 'currency' , 'effective_date', 'expiration_date', 'remarks', 'terms_condition', 'soft_delete' )
