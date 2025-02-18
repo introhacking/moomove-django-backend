@@ -26,7 +26,7 @@ class Source(models.Model):
     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
     name = models.CharField(max_length=100, unique=True)  # Ensure source name is unique
     soft_delete = models.BooleanField(blank=True, null=True, default=False)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='source')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='source')
 
     def save(self, *args, **kwargs):
         # Convert the name to uppercase before saving
@@ -42,7 +42,7 @@ class Destination(models.Model):
     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
     name = models.CharField(max_length=100, unique=True)  # Ensure destination name is unique
     soft_delete = models.BooleanField(blank=True, null=True, default=False)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='destination')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='destination')
 
     def save(self, *args, **kwargs):
         # Convert the name to uppercase before saving
@@ -55,7 +55,7 @@ class Destination(models.Model):
 
 class TransitTime(models.Model):
     time = models.CharField(max_length=50,unique=True)  # Changed to CharField to handle ranges and float times
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='transitTime')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='transitTime')
 
     def __str__(self):
         return self.time
@@ -63,7 +63,7 @@ class TransitTime(models.Model):
 class FreightType(models.Model):
     type = models.CharField(max_length=50)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='freightType')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='freightType')
 
     def __str__(self):
         return self.type
@@ -72,7 +72,7 @@ class Company(models.Model):
     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
     name = models.CharField(max_length=255,unique=True)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='company')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='company')
 
     # logo = models.ImageField(upload_to='company_logos/', max_length=255)
 
@@ -84,7 +84,7 @@ class ClientTemplateCompany(models.Model):
     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
     name = models.CharField(max_length=255,unique=True)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='clientTemplateCompany')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='clientTemplateCompany')
 
     def __str__(self):
         return self.name
@@ -93,21 +93,21 @@ class ClientTemplateCompany(models.Model):
 
 class Comodity(models.Model):
     name = models.CharField(max_length=255, unique=True)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='comodity')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='comodity')
 
     def __str__(self):
         return self.name
 
 class IncoTerm(models.Model):
     rule = models.CharField(max_length=255, unique=True)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='incoTerm')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='incoTerm')
 
     def __str__(self):
         return self.rule
 
 class VersionedRate(models.Model):
     unique_uuid = models.CharField(max_length=24, unique=True, null=True, editable=False)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='versionedRate')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='versionedRate')
     company = models.ForeignKey(ClientTemplateCompany, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
@@ -142,7 +142,7 @@ class VersionedRate(models.Model):
 
 class Rate(models.Model):
     unique_uuid = models.CharField(max_length=24, unique=True, null=True, editable=False)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='rates')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='rates')
     company = models.ForeignKey(ClientTemplateCompany, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
@@ -182,7 +182,7 @@ class ManualRate(models.Model):
     # logo = models.ImageField(upload_to='company_logos/', max_length=255, blank=True, null=True)
     unique_uuid = models.CharField(max_length=24, unique=True, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, default=1)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='manualRates')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='manualRates')
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     freight_type = models.ForeignKey(FreightType, on_delete=models.CASCADE)
@@ -224,7 +224,7 @@ class ManualRate(models.Model):
 
 class CustomerInfo(models.Model):
     company_name = models.CharField(max_length=60)
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='customerInfo')
+    client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='customerInfo')
     cust_name = models.CharField(max_length=100)
     cust_email = models.EmailField(max_length=80,unique=True)
     sales_represent = models.CharField(max_length=150)
@@ -247,7 +247,7 @@ class ActivityLog(models.Model):
         related_name='activity_logs',
         null=True 
     )
-    # client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='activityLog', null=True, blank=True)
+    # client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='activityLog', null=True, blank=True)
     action_type = models.CharField(max_length=150)
     action_status = models.BooleanField(null=True)
     source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, blank=True)

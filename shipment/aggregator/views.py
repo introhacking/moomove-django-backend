@@ -1742,15 +1742,19 @@ class CustomerInfoListView(APIView):
     def get(self, request):
         try:
             user = request.user
-
-        # Super Admin can access all sources
-            if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-                freightType =CustomerInfo.objects.filter(soft_delete=False)
-            else:
-                freightType = CustomerInfo.objects.filter(soft_delete=False, client_id=user.client_id)
-                serializer = CustomerInfoSerializer(freightType, many=True)
-                return Response(serializer.data, status=status.HTTP_200_OK)
             
+            # Super Admin can access all sources without filtering by client_id
+            if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+                # Super Admins are not restricted by client_id
+                freightType = CustomerInfo.objects.all()  # Get all customer info, no filter needed
+            else:
+                # Non-admin users are filtered by their client_id
+                freightType = CustomerInfo.objects.filter(client_id=user.client_id)
+
+            # Serialize the data and return it
+            serializer = CustomerInfoSerializer(freightType, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
