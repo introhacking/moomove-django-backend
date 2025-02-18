@@ -15,6 +15,7 @@ urlpatterns = [
     path('destination/', DestinationListAPIView.as_view(), name='destination-list'),
     path('frighttype/', FreightTypeListAPIView.as_view(), name='fright-type-list'),
     path('rates/<int:source>/<int:destination>/', RateListView.as_view(), name='rate-list'),
+    path('rates/<int:source>/<int:destination>/<int:freight_type>/', RateListView.as_view(), name='rate-list-with-freighttype'),
     path('commodities/', CommodityList.as_view(), name='commodity-list'),
     path('incoterms/', IncoTermList.as_view(), name='incoterm-list'),
     path('manual-rate/', ManualRateListView.as_view(), name='create_manual_rate'),

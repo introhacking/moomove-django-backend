@@ -109,3 +109,18 @@ class IsUser(permissions.BasePermission):
         if user and user.is_authenticated:
             return user.role and user.role.role_name == "User"
         return False
+
+# [ 18/FEB/25 ]
+class IsSuperAdmin(permissions.BasePermission):
+    """
+    Allow access only for Super Admins.
+    Super Admins can view and manage all client data.
+    """
+    def has_permission(self, request, view):
+        user = request.user
+        # if user and user.is_authenticated:
+        #     return user.is_admin or (user.role and user.role.role_name == "Super Admin")
+        # return False
+        if user.is_admin:
+            return True
+        return user.client_id is not None

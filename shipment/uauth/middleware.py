@@ -34,8 +34,16 @@ class ClientAccessMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
+    # [ 18/FEB/25 ]
     def __call__(self, request):
-        # Check if the user is authenticated and linked to a client
-        if request.user.is_authenticated and not request.user.client:
-            return JsonResponse({'error': 'Access Denied: No client assigned'}, status=403)
-        return self.get_response(request)    
+        if request.user.is_authenticated:
+            if not request.user.is_admin and not request.user.is_superuser:
+                if not request.user.client:
+                    return JsonResponse({"error": "Access Denied: No client assigned"}, status=403)
+        return self.get_response(request)
+
+    # def __call__(self, request):
+    #     # Check if the user is authenticated and linked to a client
+    #     if request.user.is_authenticated and not request.user.client:
+    #         return JsonResponse({'error': 'Access Denied: No client assigned'}, status=403)
+    #     return self.get_response(request)    

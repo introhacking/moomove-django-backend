@@ -26,7 +26,6 @@ class CompanySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data
 
-
 class ClientTemplateCompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = ClientTemplateCompany
@@ -38,7 +37,8 @@ class ClientTemplateCompanySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("User is not associated with any client.")
         if request_user_client != data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
-        return data      
+        data1={request_user_client, data}
+        return data1       
 
 class SourceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -52,7 +52,6 @@ class SourceSerializer(serializers.ModelSerializer):
         if request_user_client != data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
-    
 
 class DestinationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -173,7 +172,7 @@ class RateSerializer1(serializers.Serializer):  # Change to `serializers.Seriali
     un_number = serializers.CharField()
     vessel_name = serializers.CharField()
     cargotype = serializers.CharField()
-    voyage = serializers.CharField()
+    # voyage = serializers.CharField()
     hazardous = serializers.BooleanField()
     terms_condition = serializers.CharField()
     source_id = serializers.IntegerField()
@@ -192,6 +191,13 @@ class RateSerializer1(serializers.Serializer):  # Change to `serializers.Seriali
     si_cut_off_date = serializers.DateField()
     gate_opening_date = serializers.DateField()
     service = serializers.CharField()
+    voyage = serializers.CharField()
+    charge = serializers.CharField()
+    charge_flag = serializers.CharField()
+    charge_name = serializers.CharField()
+    pp_cc = serializers.CharField()
+    note = serializers.CharField()
+
 
 
     class Meta:
@@ -199,9 +205,9 @@ class RateSerializer1(serializers.Serializer):  # Change to `serializers.Seriali
         fields = [
            'id', 'unique_uuid', 'company_id', 'company_name', 'rate', 'currency',
             'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
-            'expiration_date', 'un_number', 'vessel_name', 'cargotype', 'voyage', 'hazardous', 'terms_condition',
+            'expiration_date', 'un_number', 'vessel_name', 'cargotype', 'hazardous', 'terms_condition',
             'source_id', 'source_name', 'destination_id', 'destination_name', 'transit_time_id', 'transit_time',
-            'freight_type_id', 'freight_type','remarks','shipping_schedule_id','departure_date','arrival_date','port_cut_off_date','si_cut_off_date', 'gate_opening_date','service' 
+            'freight_type_id', 'freight_type','remarks','shipping_schedule_id','departure_date','arrival_date','port_cut_off_date','si_cut_off_date', 'gate_opening_date','service','voyage','charge','charge_flag','charge_name','pp_cc','note' 
         ]
     
     def validate(self, data):
@@ -273,7 +279,6 @@ class CustomerInfoSerializer(serializers.ModelSerializer):
         if request_user_client != data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
-    
 
 class IncoTermSerializer(serializers.ModelSerializer):
     class Meta:
@@ -320,4 +325,3 @@ class ClientinfoSerializer(serializers.ModelSerializer):
         if not value or not value.strip():  # Ensure company_name is not None or empty
             raise serializers.ValidationError("Company name cannot be empty or null")
         return value.strip()    
-

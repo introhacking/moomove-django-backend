@@ -51,6 +51,13 @@ class UserAdmin(admin.ModelAdmin):
 
     get_role.short_description = 'Role'  # Set the column name in the admin panel
 
+    # [ 18/FEB/25 ]
+    def has_module_permission(self, request):
+        if request.user.is_authenticated:  # Ensure user is logged in
+            if getattr(request.user, "is_admin", False) or request.user.is_superuser:
+                return True
+        return super().has_module_permission(request)
+
     def get_queryset(self, request):
         """Override queryset to include related fields for performance."""
         queryset = super().get_queryset(request)
