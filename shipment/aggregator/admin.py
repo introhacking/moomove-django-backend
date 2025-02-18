@@ -189,7 +189,7 @@ class ShippingScheduleInline(admin.TabularInline):
 
 @admin.register(ManualRate)
 class ManualRateAdmin(admin.ModelAdmin):
-    list_display = ('client', 'company', 'source', 'destination', 'rate', 'currency', 'freight_type','charge', 'charge_name' , 'charge_flag', 'pp_cc')
+    list_display = ('client', 'company', 'source', 'destination', 'rate', 'currency', 'freight_type','charge', 'charge_name' , 'charge_flag' , 'cost_per_unit', 'pp_cc')
     search_fields = ('client__client_name', 'company__name', 'source__name', 'destination__name')
     list_filter = ('currency',)
     inlines = [ShippingScheduleInline]
