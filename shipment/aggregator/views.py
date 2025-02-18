@@ -1861,34 +1861,40 @@ class CustomerInfoDetailsListView(APIView):
         try:
             user = request.user
 
-        # Super Admin can access all customer info
+            # Super Admin can access all customer info
             if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
                 customer_info = CustomerInfo.objects.get(id=id)
             else:
                 client_id = user.client_id
                 if not client_id:
                     return Response(
-                    {"error": "You are not associated with any client."},
-                    status=status.HTTP_403_FORBIDDEN,
+                        {"error": "You are not associated with any client."},
+                        status=status.HTTP_403_FORBIDDEN,
                     )
 
-            # Fetch customer info for the given id and client_id
+                # Fetch customer info for the given id and client_id
                 try:
                     customer_info = CustomerInfo.objects.get(id=id, client_id=client_id)
                 except CustomerInfo.DoesNotExist:
                     return Response(
-                    {"error": f"CustomerInfo with id {id} does not exist or unauthorized access."},
-                    status=status.HTTP_404_NOT_FOUND,
+                        {"error": f"CustomerInfo with id {id} does not exist or unauthorized access."},
+                        status=status.HTTP_404_NOT_FOUND,
                     )
 
-                customer_info_serializer = CustomerInfoSerializer(customer_info)
-                return Response(customer_info_serializer.data, status=status.HTTP_200_OK)
+            # Move this outside the if-else block
+            customer_info_serializer = CustomerInfoSerializer(customer_info)
+            return Response(customer_info_serializer.data, status=status.HTTP_200_OK)
 
+        except CustomerInfo.DoesNotExist:
+            return Response(
+                {"error": f"CustomerInfo with id {id} not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         except Exception as e:
             return Response(
-            {"error": f"An unexpected error occurred: {str(e)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
     # def get(self, request, id):
