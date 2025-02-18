@@ -4,8 +4,6 @@ from django.utils import timezone    # new for search history
 from datetime import datetime
 from django.conf import settings
 
-
-
 # CLIENT INFO 
 # 07/Jan/2025
 class Clientinfo(models.Model):
@@ -215,11 +213,11 @@ class ManualRate(models.Model):
     charge_name = models.CharField(max_length=50, null=True,blank=True)
     charge_flag = models.CharField(max_length=50, null=True,blank=True)
     pp_cc = models.CharField(max_length=50, null=True,blank=True)
-    cost_per_unit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     note = models.CharField(max_length=255, null=True,blank=True)
 
+
     class Meta:
-        unique_together = ('company', 'destination','source', 'direct_shipment','spot_filed', 'vessel_name','voyage', 'haz_class', 'packing_group', 'free_days', 'free_days_comment' , 'hazardous' , 'un_number',  'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate', 'currency' , 'effective_date', 'expiration_date', 'remarks', 'terms_condition', 'soft_delete' )
+        unique_together = ('company', 'destination','source', 'direct_shipment','spot_filed', 'vessel_name','voyage', 'haz_class', 'packing_group', 'free_days', 'free_days_comment' , 'hazardous' , 'un_number',  'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate', 'currency' , 'effective_date', 'expiration_date', 'remarks', 'terms_condition', 'soft_delete')
 
     def __str__(self):
          return f"{self.company} | {self.source} - {self.destination} | {self.rate} - {self.currency} - {self.cargotype} | {self.effective_date} - {self.expiration_date}"
@@ -240,7 +238,6 @@ class CustomerInfo(models.Model):
     def __str__(self):
         return f"{self.company_name} | {self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
 
-
 # ACTIVITY LOG 
 # 30/Dec/2024
 class ActivityLog(models.Model):
@@ -250,6 +247,7 @@ class ActivityLog(models.Model):
         related_name='activity_logs',
         null=True 
     )
+    # client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, related_name='activityLog', null=True, blank=True)
     action_type = models.CharField(max_length=150)
     action_status = models.BooleanField(null=True)
     source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, blank=True)
