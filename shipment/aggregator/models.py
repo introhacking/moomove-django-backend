@@ -4,7 +4,7 @@ from django.utils import timezone    # new for search history
 from datetime import datetime
 from django.conf import settings
 
-# CLIENT INFO 
+# [ CLIENT INFO ] 
 # 07/Jan/2025
 class Clientinfo(models.Model):
     client_id = models.CharField(max_length=255, primary_key=True)
@@ -169,6 +169,8 @@ class Rate(models.Model):
     remarks = models.TextField(blank=True, null=True)
     version = models.ForeignKey(VersionedRate, on_delete=models.CASCADE, related_name='rates')
     soft_delete = models.BooleanField(blank=True, null=True , default=False)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
 
     class Meta:
         unique_together = ('company', 'source', 'destination', 'transit_time', 'freight_type', 'currency' ,'spot_filed', 'vessel_name','voyage', 'haz_class', 'packing_group', 'terms_condition', 'free_days' , 'free_days_comment' ,  'hazardous' , 'un_number', 'effective_date', 'expiration_date' , 'soft_delete')
@@ -186,9 +188,9 @@ class ManualRate(models.Model):
     destination = models.ForeignKey(Destination, on_delete=models.CASCADE)
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
     freight_type = models.ForeignKey(FreightType, on_delete=models.CASCADE)
-    transit_time = models.ForeignKey(TransitTime, on_delete=models.CASCADE)
+    transit_time = models.ForeignKey(TransitTime, null=True, blank=True, on_delete=models.CASCADE)
     rate = models.DecimalField(max_digits=10, decimal_places=2)
-    free_days = models.IntegerField(default='1')
+    free_days = models.IntegerField(default=1)
     free_days_comment = models.CharField(max_length=256, null=True , default='testing')
     currency = models.CharField(max_length=15, default='USD')
     effective_date = models.DateField()
@@ -197,30 +199,31 @@ class ManualRate(models.Model):
     voyage = models.CharField(max_length=50, null=True)
     haz_class = models.CharField(max_length=50, null=True)
     packing_group = models.CharField(max_length=50, null=True)
-    hazardous = models.BooleanField(default=False, null=True)
+    hazardous = models.BooleanField(default=False)
     un_number = models.CharField(max_length=4, null=True)
-    direct_shipment = models.BooleanField(blank=True, null=True , default=False) 
+    direct_shipment = models.BooleanField(default=False) 
     spot_filed = models.CharField(max_length=15 , default='spot')
-    isRateTypeStatus = models.BooleanField(blank=True, null=True , default=False)
+    isRateTypeStatus = models.BooleanField(default=False)
     isRateUsed = models.BooleanField(default=False)
     transhipment_add_port = models.CharField(blank=True, null=True , max_length=50)
     expiration_date = models.DateField(blank=True, null=True)
     remarks = models.TextField(blank=True, null=True)
     terms_condition = models.CharField(blank=True, null=True)
-    soft_delete = models.BooleanField(blank=True, null=True , default=False)
-    # [ 10 / FEB / 25]
-    charge = models.CharField(max_length=50, null=True,blank=True)
-    charge_name = models.CharField(max_length=50, null=True,blank=True)
-    charge_flag = models.CharField(max_length=50, null=True,blank=True)
-    pp_cc = models.CharField(max_length=50, null=True,blank=True)
-    note = models.CharField(max_length=255, null=True,blank=True)
+    soft_delete = models.BooleanField(default=False)
+    charge = models.CharField(max_length=50, default='FRTF')
+    charge_name = models.CharField(max_length=50, default='FREIGHT CHARGE - FREEHAND')
+    charge_flag = models.CharField(max_length=50, default='both')
+    pp_cc = models.CharField(max_length=50, default='collect')
+    note = models.CharField(max_length=255, default='note')
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
 
 
     class Meta:
-        unique_together = ('company', 'destination','source', 'direct_shipment','spot_filed', 'vessel_name','voyage', 'haz_class', 'packing_group', 'free_days', 'free_days_comment' , 'hazardous' , 'un_number',  'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate', 'currency' , 'effective_date', 'expiration_date', 'remarks', 'terms_condition', 'soft_delete')
+        unique_together = ('company', 'destination','source','direct_shipment', 'spot_filed', 'vessel_name','voyage', 'haz_class', 'packing_group', 'free_days', 'free_days_comment' , 'hazardous' , 'un_number',  'transhipment_add_port', 'cargotype', 'transit_time','freight_type', 'rate', 'currency' , 'effective_date', 'expiration_date', 'remarks', 'terms_condition' , 'charge' , 'charge_name' , 'pp_cc')
 
     def __str__(self):
-         return f"{self.company} | {self.source} - {self.destination} | {self.rate} - {self.currency} - {self.cargotype} | {self.effective_date} - {self.expiration_date}"
+         return f"{self.company} | {self.source} - {self.destination} | {self.rate} - {self.currency} - {self.cargotype} | {self.effective_date} - {self.expiration_date} | {self.charge} | {self.charge_flag} | {self.pp_cc}"
 
 class CustomerInfo(models.Model):
     company_name = models.CharField(max_length=60)
@@ -237,6 +240,7 @@ class CustomerInfo(models.Model):
 
     def __str__(self):
         return f"{self.company_name} | {self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
+     
 
 # ACTIVITY LOG 
 # 30/Dec/2024
@@ -247,7 +251,6 @@ class ActivityLog(models.Model):
         related_name='activity_logs',
         null=True 
     )
-    # client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='activityLog', null=True, blank=True)
     action_type = models.CharField(max_length=150)
     action_status = models.BooleanField(null=True)
     source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, blank=True)

@@ -223,7 +223,7 @@ class ManualRateSerializer(serializers.ModelSerializer):
     company = CompanySerializer()
     source = SourceSerializer()
     destination = DestinationSerializer()
-    transit_time = TransitTimeSerializer()
+    # transit_time = TransitTimeSerializer()
     freight_type = FreightTypeSerializer()
     shipping_schedules = ShippingScheduleSerializer(many=True, required=False)
     # commodity_name = CommoditySerializer()

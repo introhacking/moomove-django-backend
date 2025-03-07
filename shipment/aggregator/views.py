@@ -1203,14 +1203,12 @@ class RateListView(generics.ListAPIView):
             return data
 
 
+# [ MANUALRATE FILTER WITH COMPANY ID ]
+class ManualRateFilterWithCompanyIdAPIView(APIView):
+    permission_classess =[ IsAuthenticated,
+        IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsSuperAdmin,]
 
-class ManualRateWithRateWithVersionsAPIView(APIView):
-    permission_classes = [
-        IsAuthenticated,
-        IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsSuperAdmin,
-    ]
-
-    #[ 18/feb/25 ]
+        #[ 06/MARCH/2025 ]
     def get(self, request, company_id):
         try:
             user = request.user
@@ -1249,58 +1247,91 @@ class ManualRateWithRateWithVersionsAPIView(APIView):
             )
 
 
+class ManualRateWithRateWithVersionsAPIView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsSuperAdmin,
+    ]
+
+    # [ 28/FEB/2025 ]
+
+    def get(self, request, source_id, destination_id):
+        try:
+            user = request.user
+
+            # Super Admin can access all manual rates
+            if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+                manual_rates = ManualRate.objects.filter(source_id=source_id, destination_id=destination_id, soft_delete=False)
+            else:
+                client_id = user.client_id
+                if not client_id:
+                    return Response(
+                        {"error": "You are not associated with any client."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+                manual_rates = ManualRate.objects.filter(
+                    source_id=source_id, destination_id=destination_id, client_id=client_id, charge='FRTF', soft_delete=False
+                ).prefetch_related('shipping_schedules')
+
+                if not manual_rates.exists():
+                    return Response(
+                        {"error": "FRTF charge code not found for this shipping line."},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+
+            serializer = ManualRateSerializer(manual_rates, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except PermissionDenied as e:
+            return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        
+        except Exception as e:
+            return Response(
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    #[ 18/feb/25 ]
     # def get(self, request, company_id):
     #     try:
-    #         # client_id = request.user.client_id  # Fetch the client_id from the logged-in user
-            
-    #         # if not client_id:
-    #         #     raise PermissionDenied("You are not associated with any client.")
-
-
     #         user = request.user
-    #     # Super Admin can access all manual rates
+
+    #         # Super Admin can access all manual rates
     #         if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
     #             manual_rates = ManualRate.objects.filter(company_id=company_id, soft_delete=False)
     #         else:
     #             client_id = user.client_id
-
-    #         # Ensure the user has a valid client_id
     #             if not client_id:
     #                 return Response(
     #                     {"error": "You are not associated with any client."},
-    #                     status=status.HTTP_403_FORBIDDEN,
-    #             )
-                
-    #         # Fetch manual rates along with related shipping schedules
-    #         # Retrieve schedules related to the manual rates
+    #                     status=status.HTTP_403_FORBIDDEN
+    #                 )
 
-    #         manual_rates = ManualRate.objects.filter(
-    #             company_id=company_id, client_id=client_id, charge='FRTF', soft_delete=False
-    #         ).prefetch_related('shipping_schedules')  # Optimize query
+    #             manual_rates = ManualRate.objects.filter(
+    #                 company_id=company_id, client_id=client_id, charge='FRTF', soft_delete=False
+    #             ).prefetch_related('shipping_schedules')
 
-    #         if not manual_rates.exists():
-    #             raise ManualRate.DoesNotExist("FRTF charge code not found for this shipping line.")
+    #             if not manual_rates.exists():
+    #                 return Response(
+    #                     {"error": "FRTF charge code not found for this shipping line."},
+    #                     status=status.HTTP_404_NOT_FOUND
+    #                 )
 
-    #         manual_rates_serializer = ManualRateSerializer(manual_rates, many=True)
-    #         # schedule_serializer = ShippingScheduleSerializer(schedules, many=True)
+    #         serializer = ManualRateSerializer(manual_rates, many=True)
+    #         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    #         # print(schedule_serializer.data)
-    #         # print(manual_rates_serializer.data)
-    #         return Response(manual_rates_serializer.data, status=status.HTTP_200_OK)
-
-    #     except ManualRate.DoesNotExist as e:
-    #         return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
-        
     #     except PermissionDenied as e:
     #         return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
-
+        
     #     except Exception as e:
     #         return Response(
     #             {"error": f"An unexpected error occurred: {str(e)}"},
-    #             status=status.HTTP_400_BAD_REQUEST,
+    #             status=status.HTTP_400_BAD_REQUEST
     #         )
 
 
+   
 class ManualRateListView(APIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsSuperAdmin,]
 
@@ -1376,13 +1407,13 @@ class ManualRateListView(APIView):
                 source_name = rate_data.get('source')
                 destination_name = rate_data.get('destination')
                 freight_type_name = rate_data.get('freight_type')
-                transit_time = rate_data.get('transit_time')
+                # transit_time = rate_data.get('transit_time')
                 cargotype_name = rate_data.get('cargotype')
                 rate = rate_data.get('rate')
                 currency = rate_data.get('currency')
                 hazardous = rate_data.get('hazardous')
                 un_number = rate_data.get('un_number')
-                direct_shipment = rate_data.get('direct_shipment')
+                # direct_shipment = rate_data.get('direct_shipment')
                 spot_filed = rate_data.get('spot_filed')
                 isRateTypeStatus = rate_data.get('isRateTypeStatus')
                 vessel_name = rate_data.get('vessel_name')
@@ -1408,7 +1439,7 @@ class ManualRateListView(APIView):
                 source_instance, _ = Source.objects.get_or_create(name=source_name, defaults={'client_id': client_id})
                 destination_instance, _ = Destination.objects.get_or_create(name=destination_name, defaults={'client_id': client_id})
                 freight_type_instance, _ = FreightType.objects.get_or_create(type=freight_type_name, defaults={'client_id': client_id})
-                transit_time_instance, _ = TransitTime.objects.get_or_create(time=transit_time, defaults={'client_id': client_id})
+                # transit_time_instance, _ = TransitTime.objects.get_or_create(time=transit_time, defaults={'client_id': client_id})
                 commodity_instance, _ = Comodity.objects.get_or_create(name=cargotype_name, defaults={'client_id': client_id})
 
                 exact_match = ManualRate.objects.filter(
@@ -1417,7 +1448,7 @@ class ManualRateListView(APIView):
                     source=source_instance,
                     destination=destination_instance,
                     freight_type=freight_type_instance,
-                    transit_time=transit_time_instance,
+                    # transit_time=transit_time_instance,
                     cargotype=commodity_instance,
                     rate=rate,
                     charge=charge,
@@ -1440,13 +1471,13 @@ class ManualRateListView(APIView):
                     source=source_instance,
                     destination=destination_instance,
                     freight_type=freight_type_instance,
-                    transit_time=transit_time_instance,
+                    # transit_time=transit_time_instance,
                     cargotype=commodity_instance,
                     rate=rate,
                     currency=currency,
                     hazardous=hazardous,
                     un_number=un_number,
-                    direct_shipment=direct_shipment,
+                    # direct_shipment=direct_shipment,
                     spot_filed=spot_filed,
                     isRateTypeStatus=isRateTypeStatus,
                     vessel_name=vessel_name,
@@ -1555,7 +1586,7 @@ class ManualRateListView(APIView):
                 source_name = rate_data.get('source')
                 destination_name = rate_data.get('destination')
                 freight_type_name = rate_data.get('freight_type')
-                transit_time = rate_data.get('transit_time')
+                # transit_time = rate_data.get('transit_time')
                 cargotype_name = rate_data.get('cargotype')
                 rate = rate_data.get('rate')
                 currency = rate_data.get('currency')
@@ -1587,7 +1618,7 @@ class ManualRateListView(APIView):
                 source_instance, _ = Source.objects.get_or_create(name=source_name, defaults={'client_id': client_id})
                 destination_instance, _ = Destination.objects.get_or_create(name=destination_name, defaults={'client_id': client_id})
                 freight_type_instance, _ = FreightType.objects.get_or_create(type=freight_type_name, defaults={'client_id': client_id})
-                transit_time_instance, _ = TransitTime.objects.get_or_create(time=transit_time, defaults={'client_id': client_id})
+                # transit_time_instance, _ = TransitTime.objects.get_or_create(time=transit_time, defaults={'client_id': client_id})
                 commodity_instance, _ = Comodity.objects.get_or_create(name=cargotype_name, defaults={'client_id': client_id})
 
                 # Check if an exact updated record already exists
@@ -1597,7 +1628,7 @@ class ManualRateListView(APIView):
                     source=source_instance,
                     destination=destination_instance,
                     freight_type=freight_type_instance,
-                    transit_time=transit_time_instance,
+                    # transit_time=transit_time_instance,
                     cargotype=commodity_instance,
                     rate=rate,
                     charge=charge,
@@ -1613,13 +1644,13 @@ class ManualRateListView(APIView):
                 manual_rate.source = source_instance
                 manual_rate.destination = destination_instance
                 manual_rate.freight_type = freight_type_instance
-                manual_rate.transit_time = transit_time_instance
+                # manual_rate.transit_time = transit_time_instance
                 manual_rate.cargotype = commodity_instance.name
                 manual_rate.rate = rate
                 manual_rate.currency = currency
                 manual_rate.hazardous = hazardous
                 manual_rate.un_number = un_number
-                manual_rate.direct_shipment = direct_shipment
+                # manual_rate.direct_shipment = direct_shipment
                 manual_rate.spot_filed = spot_filed
                 manual_rate.isRateTypeStatus = isRateTypeStatus
                 manual_rate.vessel_name = vessel_name
