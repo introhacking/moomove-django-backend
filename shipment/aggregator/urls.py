@@ -29,5 +29,6 @@ urlpatterns = [
     path('update-customer/<int:id>/', CustomerInfoListView.as_view(), name='update_customer_info'),
     path('activity-log/', ActivityLogView.as_view(), name='activityLog'),
     path('clientinfo/', ClientinfoViewSet.as_view(), name='clientinfo'),
+    path('quotations/recent/', RecentQuotationsView.as_view(), name='recent-quotations'),
 
 ]

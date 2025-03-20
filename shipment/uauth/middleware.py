@@ -30,20 +30,45 @@ class AuditMiddleware:
 
         return response
 
-class ClientAccessMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    # [ 18/FEB/25 ]
-    def __call__(self, request):
-        if request.user.is_authenticated:
-            if not request.user.is_admin and not request.user.is_superuser:
-                if not request.user.client:
-                    return JsonResponse({"error": "Access Denied: No client assigned"}, status=403)
-        return self.get_response(request)
+# class ClientAccessMiddleware:
+#     def __init__(self, get_response):
+#         self.get_response = get_response
+        
+#     # [ 18/FEB/25 ]
+#     def __call__(self, request):
+#         if request.user.is_authenticated:
+#             if not request.user.is_admin and not request.user.is_superuser:
+#                 if not request.user.client:
+#                     return JsonResponse({"error": "Access Denied: No client assigned"}, status=403)
+#         return self.get_response(request)    
 
     # def __call__(self, request):
     #     # Check if the user is authenticated and linked to a client
     #     if request.user.is_authenticated and not request.user.client:
     #         return JsonResponse({'error': 'Access Denied: No client assigned'}, status=403)
     #     return self.get_response(request)    
+
+
+
+# [ 11/03/2025]
+
+class ClientAccessMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated:
+            # For non-admin users, enforce that a client is assigned.
+            if not (request.user.is_admin or request.user.is_superuser):
+                if not request.user.client:
+                    return JsonResponse({"error": "Access Denied: No client assigned"}, status=403)
+
+            # Attach an active client context to the request.
+            # For admin users, use current_client if set; otherwise, it remains None.
+            # For regular users, use the assigned client.
+            if request.user.is_admin or request.user.is_superuser:
+                request.active_client = request.user.current_client  # May be None if not switched.
+            else:
+                request.active_client = request.user.client
+
+        return self.get_response(request)

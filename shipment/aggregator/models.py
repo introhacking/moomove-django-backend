@@ -4,7 +4,16 @@ from django.utils import timezone    # new for search history
 from datetime import datetime
 from django.conf import settings
 
-# [ CLIENT INFO ] 
+
+# class Source(models.Model):
+#     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False) 
+#     name = models.CharField(max_length=100)
+#     soft_delete = models.BooleanField(blank=True, null=True , default=False)
+
+#     def __str__(self):
+#         return self.name
+
+# CLIENT INFO 
 # 07/Jan/2025
 class Clientinfo(models.Model):
     client_id = models.CharField(max_length=255, primary_key=True)
@@ -37,6 +46,14 @@ class Source(models.Model):
     def _str_(self):
         return self.name
 
+
+# class Destination(models.Model):
+#     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
+#     name = models.CharField(max_length=100)
+#     soft_delete = models.BooleanField(blank=True, null=True , default=False)
+
+#     def __str__(self):
+#         return self.name
 
 class Destination(models.Model):
     unique_uuid = models.CharField(max_length=16, unique=True, null=True, editable=False)
@@ -240,8 +257,7 @@ class CustomerInfo(models.Model):
 
     def __str__(self):
         return f"{self.company_name} | {self.cust_name} | {self.sales_represent} | {self.cust_email} | {self.phone}"   
-     
-
+    
 # ACTIVITY LOG 
 # 30/Dec/2024
 class ActivityLog(models.Model):
@@ -251,6 +267,7 @@ class ActivityLog(models.Model):
         related_name='activity_logs',
         null=True 
     )
+    # client = models.ForeignKey(Clientinfo, null=True, blank=True, on_delete=models.CASCADE, related_name='activityLog', null=True, blank=True)
     action_type = models.CharField(max_length=150)
     action_status = models.BooleanField(null=True)
     source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, blank=True)

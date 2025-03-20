@@ -171,41 +171,20 @@ class UserLoginView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-#new added 31 dec
+# [ GOOGLE LOGIN ]
 User = get_user_model()
-# Helper function to generate JWT tokens
-def generate_tokens(user):
-    refresh = RefreshToken.for_user(user)
-    return {
-        'refresh': str(refresh),
-        'access': str(refresh.access_token),
-    }
 
-#4/Jan/25
 class GoogleLoginView(APIView):
+    """
+    Handles Google OAuth login with ID token.
+    """
+
     def post(self, request, *args, **kwargs):
-        auth_code = request.data.get("auth_code")
-        if not auth_code:
-            return Response({"error": "Authorization code is required."}, status=status.HTTP_400_BAD_REQUEST)
+        id_token = request.data.get("access_token")
+        if not id_token:
+            return Response({"error": "ID token is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Step 1: Exchange auth_code for tokens
-        token_url = "https://oauth2.googleapis.com/token"
-        data = {
-            "code": auth_code,
-            "client_id": "520618349440-in3h8j5u2e5ick0qcebethd1nlq288jb.apps.googleusercontent.com",
-            "client_secret": "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",
-            "redirect_uri": "http://127.0.0.1:8000/accounts/google/login/callback/",
-            "grant_type": "authorization_code",
-        }
-
-        token_response = requests.post(token_url, data=data)
-        if token_response.status_code != 200:
-            return Response({"error": "Failed to fetch tokens."}, status=status.HTTP_400_BAD_REQUEST)
-
-        tokens = token_response.json()
-        id_token = tokens.get("id_token")
-
-        # Step 2: Validate the ID token
+        # Validate the ID token
         validation_url = "https://oauth2.googleapis.com/tokeninfo"
         validation_response = requests.get(validation_url, params={"id_token": id_token})
 
@@ -213,15 +192,38 @@ class GoogleLoginView(APIView):
             return Response({"error": "Invalid ID token."}, status=status.HTTP_400_BAD_REQUEST)
 
         user_info = validation_response.json()
-
-        # Step 3: Process the user info (e.g., log in or register)
         email = user_info.get("email")
+        name = user_info.get("name")
+        profile_picture = user_info.get("picture")
+        
+
         if not email:
             return Response({"error": "Invalid user information."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Handle your user authentication logic here
-        return Response({"message": "Google login is valid.", "user": user_info}, status=status.HTTP_200_OK)
-      
+        # Authenticate or create user
+        user, created = User.objects.get_or_create(email=email, defaults={"email": email, "name": name})
+
+        # Generate JWT token
+        refresh = RefreshToken.for_user(user)
+
+        role_name = "User"  # Default role or any other logic to get the role
+
+        return Response({
+            "message": "Google login successful.",
+            "user": {
+                "email": user.email,
+                "name": user.name,
+                "profile_picture": profile_picture,
+                "created": created,  # True if a new user was created
+                "role" : {"role_name": role_name},
+            },
+            "status": True,
+            "token":{
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            },
+        }, status=status.HTTP_200_OK)
+
     
 class UserLogoutView(generics.GenericAPIView):
     serializer_class = LogoutSerializer
@@ -238,9 +240,6 @@ class UserLogoutView(generics.GenericAPIView):
             return Response({"status": True, "message": "Logout successful"}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
 
 
 class UserDetailView(generics.RetrieveAPIView):
@@ -332,3 +331,23 @@ class UserViewSet(viewsets.ModelViewSet):
     # permission_classes = [IsPSorAdminUser, IsAuthenticated]
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+
+
+# [ 11/03/2025 ]
+class ClientSwitchView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if not user.is_admin:
+            return Response({"status": False, "message": "Only admins can switch clients."}, status=status.HTTP_403_FORBIDDEN)
+
+        client_id = request.data.get("client_id")
+        try:
+            new_client = Clientinfo.objects.get(client_id=client_id)
+        except Clientinfo.DoesNotExist:
+            return Response({"status": False, "message": "Client not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user.switch_client(new_client)
+        return Response({"status": True, "message": "Client switched successfully "}, status=status.HTTP_200_OK)

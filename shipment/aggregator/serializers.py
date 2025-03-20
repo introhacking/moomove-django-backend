@@ -26,6 +26,21 @@ class CompanySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data
 
+# class CompanySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Company
+#         # fields = ['id' , 'name'] # Include the logo field
+#         fields = '__all__' 
+
+#         def validate(self, data):
+#             # Ensure the user only operates on their client data
+#             if self.context['request'].user.client != data.get('client'):
+#                 raise serializers.ValidationError("You are not authorized to perform this action.")
+#             return data
+#         # extra_kwargs = {
+#         #     'logo': {'required': False}  # Make logo optional in the serializer
+#         # }
+
 class ClientTemplateCompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = ClientTemplateCompany
@@ -38,7 +53,7 @@ class ClientTemplateCompanySerializer(serializers.ModelSerializer):
         if request_user_client != data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         data1={request_user_client, data}
-        return data1       
+        return data1      
 
 class SourceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -52,6 +67,8 @@ class SourceSerializer(serializers.ModelSerializer):
         if request_user_client != data.get('client'):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
+    
+
 
 class DestinationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -280,6 +297,12 @@ class CustomerInfoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You are not authorized to perform this action.")
         return data    
 
+# class RegistrationSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Registration,
+#         fields = '__all__'
+    
+
 class IncoTermSerializer(serializers.ModelSerializer):
     class Meta:
         model = IncoTerm
@@ -325,3 +348,16 @@ class ClientinfoSerializer(serializers.ModelSerializer):
         if not value or not value.strip():  # Ensure company_name is not None or empty
             raise serializers.ValidationError("Company name cannot be empty or null")
         return value.strip()    
+
+
+# RECENT QUOTATION GENERATED 
+# [ 12 / MAR / 25]
+class QuotationSerializer(serializers.ModelSerializer):
+    source = serializers.StringRelatedField()
+    destination = serializers.StringRelatedField()
+    freight_type = serializers.StringRelatedField()
+    company = serializers.StringRelatedField()
+
+    class Meta:
+        model = Rate  # Can also be VersionedRate or ManualRate
+        fields = ['unique_uuid', 'source', 'destination', 'freight_type', 'company', 'rate', 'currency', 'effective_date']

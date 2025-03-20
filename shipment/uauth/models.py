@@ -68,10 +68,11 @@ class UserManager(BaseUserManager):
         user.set_unusable_password()  # No password is required for Google-authenticated users
         user.save(using=self._db)
         return user
+    
 
-
+# [ 11/03/2025 ]
 class User(AbstractBaseUser, PermissionsMixin):  # Added PermissionsMixin for Django permissions compatibility
-    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE, null=True, blank=True)
+    client = models.ForeignKey(Clientinfo, on_delete=models.CASCADE,null=True, blank=True)
     email = models.EmailField(unique=True, null=False, blank=False, default="placeholder@example.com")
     name = models.CharField(max_length=255)
     mobile_number = models.CharField(max_length=15, blank=True, null=True)
@@ -85,13 +86,22 @@ class User(AbstractBaseUser, PermissionsMixin):  # Added PermissionsMixin for Dj
     updated_at = models.DateTimeField(auto_now=True)
     #new added
     otp = models.CharField(max_length=6, blank=True, null=True)
+    
+    #new added feb 20 feb
+    current_client = models.ForeignKey(
+        Clientinfo,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='active_admins'
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
 
     objects = UserManager()
 
-    def __str__(self):
+    def _str_(self):
         return self.email
 
     def has_perm(self, perm, obj=None):
@@ -103,10 +113,15 @@ class User(AbstractBaseUser, PermissionsMixin):  # Added PermissionsMixin for Dj
             return True
 
         # Implement additional permission logic here, e.g., checking custom permissions
-        if self.role and self.role.role_name  == "System Administrator":  # Assuming `RoleType` has a `role_name ` field admin (remove)
+        if self.role and self.role.role_name  == "System Administrator":  # Assuming RoleType has a `role_name ` field admin (remove)
             return perm == "can_manage_system"  # Example permission check
 
         return False
+    #10 march changes
+    def switch_client(self, new_client):
+        """Switch the current client for an admin."""
+        self.current_client = new_client
+        self.save()
 
     def has_module_perms(self, app_label):
         """
@@ -121,6 +136,7 @@ class User(AbstractBaseUser, PermissionsMixin):  # Added PermissionsMixin for Dj
                 return True
 
         return False
+
 
 class UserRole(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -22,4 +22,5 @@ urlpatterns = [
     path('update-user-verification/<int:pk>/', UpdateUserVerificationView.as_view(), name='update-user-verification'),
     path('authenticated-password-reset/', AuthenticatedPasswordResetView.as_view(), name='authenticated-password-reset'),
     path('auth/google/login/', GoogleLoginView.as_view(), name='google-login'),  # Custom API endpoint for Google login
+    path('api/switch-client/', ClientSwitchView.as_view(), name='switch-client'),
 ] + router.urls

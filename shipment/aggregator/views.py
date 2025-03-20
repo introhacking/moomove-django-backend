@@ -2,6 +2,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+import pdfplumber
 import pandas as pd
 import numpy as np
 from .models import *
@@ -783,101 +784,142 @@ class RateWithVersionsAPIView(APIView):
         IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser | IsSuperAdmin,
     ]
     
-
-    # [ 18/feb/25]
+    # [11/03/2025]
     def get(self, request, company_id):
         try:
             user = request.user
+            # Determine the active client:
+            # If the user is an admin and has switched (current_client is set), then use that;
+            # Otherwise, use the user's assigned client.
+            if user.is_admin and user.current_client:
+                active_client_id = user.current_client.client_id
+            else:
+                # For non-admin users, we assume client is always set.
+                if not user.client:
+                    return Response(
+                        {"error": "You are not associated with any client."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                active_client_id = user.client.client_id
 
-        # Super Admin can access all rates
-            if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+            # Admin can access all rates for the selected company, regardless of client.
+            # Here, you might choose to have a different logic if admin is allowed to see data for any client.
+            if user.is_admin:
                 rates = Rate.objects.filter(company_id=company_id, soft_delete=False)
             else:
-            # Regular users can only access rates related to their client_id
-                if not user.client_id:
-                    return Response(
-                    {"error": "You are not associated with any client."},
-                    status=status.HTTP_403_FORBIDDEN,
+                # For regular users, filter rates by the active client.
+                rates = Rate.objects.filter(
+                    company_id=company_id,
+                    company__client_id=active_client_id,
+                    soft_delete=False,
                 )
 
-            rates = Rate.objects.filter(
-                company_id=company_id,
-                company__client_id=user.client_id,
-                soft_delete=False,
-            )
-
-        # Serialize the rates
             rate_serializer = RateSerializer(rates, many=True)
             return Response(rate_serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
-            {"error": f"An unexpected error occurred: {str(e)}"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            ) 
 
 
+
+
+    # [ 18/feb/25]
     # def get(self, request, company_id):
     #     try:
-    #         # Get the logged-in user's client
-    #         user_client = request.user.client
+    #         user = request.user
 
-    #         # Check if the user has a client associated
-    #         if not user_client:
-    #             raise PermissionDenied("You are not associated with any client.")
+    #     # Super Admin can access all rates
+    #         if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #             rates = Rate.objects.filter(company_id=company_id, soft_delete=False)
+    #         else:
+    #         # Regular users can only access rates related to their client_id
+    #             if not user.client_id:
+    #                 return Response(
+    #                 {"error": "You are not associated with any client."},
+    #                 status=status.HTTP_403_FORBIDDEN,
+    #             )
 
-    #         # Filter rates for the given company and the user's client explicitly
     #         rates = Rate.objects.filter(
     #             company_id=company_id,
-    #             company__client_id=user_client.client_id,  # Ensure the client association
+    #             company__client_id=user.client_id,
     #             soft_delete=False,
     #         )
 
-    #         # Check if rates exist for the given company and client
-    #         if not rates.exists():
-    #             return Response(
-    #                 {"error": "Rates not found for the specified company."},
-    #                 status=status.HTTP_404_NOT_FOUND,
-    #             )
-
-    #         # Serialize the rates
+    #     # Serialize the rates
     #         rate_serializer = RateSerializer(rates, many=True)
-
     #         return Response(rate_serializer.data, status=status.HTTP_200_OK)
 
-    #     except PermissionDenied as e:
-    #         return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
     #     except Exception as e:
     #         return Response(
-    #             {"error": f"An unexpected error occurred: {str(e)}"},
-    #             status=status.HTTP_400_BAD_REQUEST,
+    #         {"error": f"An unexpected error occurred: {str(e)}"},
+    #         status=status.HTTP_400_BAD_REQUEST,
     #     )
+
+
 
 class CompanyListAPIView(APIView):
     permission_classes=[IsAuthenticated,IsClientUserEditAndRead|IsSystemOrClientAdmin|IsClientUserReadOnly|IsUser|IsSuperAdmin]
 
-    #[18/feb/25]
+    #[11/03/2025]
     def get(self, request):
-        # Retrieve the user's client
         user = request.user
 
-    # Super Admin can access all companies
-        if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-            companies = Company.objects.filter(soft_delete=False)
+    # Determine the active client for filtering
+        if user.is_admin and user.current_client:
+            active_client_id = user.current_client.client_id
         else:
-        # Regular users can only access companies related to their client_id
-            companies = Company.objects.filter(client_id=user.client_id, soft_delete=False)
+        # For non-admin users, use their assigned client
+            active_client_id = user.client_id
+
+    # Super Admin can access all companies regardless of client switching if desired,
+    # but if you want them to be limited by the switched client, use active_client_id.
+        if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+        # If admin, you could either:
+        # Option A: Allow access to all companies (current implementation)
+        # companies = Company.objects.filter(soft_delete=False)
+        #
+        # Option B: Limit to the switched client (if current_client is set)
+            companies = Company.objects.filter(
+                client_id=active_client_id,
+                soft_delete=False
+                )
+        else:
+    # Regular users can only access companies related to their own client
+            companies = Company.objects.filter(
+            client_id=active_client_id,
+            soft_delete=False
+            )
 
         serializer = CompanySerializer(companies, many=True)
         return Response(serializer.data)
 
 
-    def post(self, request):
-        serializer = CompanySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    #[18/feb/25]
+    # def get(self, request):
+    #     # Retrieve the user's client
+    #     user = request.user
+
+    # # Super Admin can access all companies
+    #     if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #         companies = Company.objects.filter(soft_delete=False)
+    #     else:
+    #     # Regular users can only access companies related to their client_id
+    #         companies = Company.objects.filter(client_id=user.client_id, soft_delete=False)
+
+    #     serializer = CompanySerializer(companies, many=True)
+    #     return Response(serializer.data)
+
+
+    # def post(self, request):
+    #     serializer = CompanySerializer(data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
     # def get(self, request):
@@ -901,59 +943,74 @@ class ClientTemplateCompanyAPIView(APIView):
         IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser | IsSuperAdmin,
     ]
 
-    # [18/feb/25]
+    # [ 11/03/2025 ]
     def get(self, request):
         try:
             user = request.user
 
-        # Super Admin can access all companies
-            if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-                companies = ClientTemplateCompany.objects.filter(soft_delete=False)
+            # Determine the active client for filtering.
+            # For admin users who have switched, use current_client.
+            if user.is_admin and user.current_client:
+                active_client_id = user.current_client.client_id
             else:
-            # Regular users can only access companies related to their client_id
+                # For regular users, ensure they have an associated client.
                 if not user.client_id:
                     return Response(
-                    {"error": "You are not associated with any client."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                        {"error": "You are not associated with any client."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                active_client_id = user.client_id
 
+            # For admin (or super admin), you may choose one of two approaches:
+            # Option A: Allow them to access all companies regardless of client filtering.
+            # Option B: Limit them to companies of the active client.
+            # Here, Option B is applied.
+            if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
                 companies = ClientTemplateCompany.objects.filter(
-                client_id=user.client_id, soft_delete=False
-            )
+                    client_id=active_client_id, soft_delete=False
+                )
+            else:
+                companies = ClientTemplateCompany.objects.filter(
+                    client_id=active_client_id, soft_delete=False
+                )
 
             serializer = ClientTemplateCompanySerializer(companies, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
-            {"error": f"An unexpected error occurred: {str(e)}"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
+    # [18/feb/25]
     # def get(self, request):
     #     try:
-    #         # Retrieve the authenticated user's client
-    #         user_client = request.user.client
+    #         user = request.user
 
-    #         if not user_client:
-    #             raise PermissionDenied("You are not associated with any client.")
+    #     # Super Admin can access all companies
+    #         if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #             companies = ClientTemplateCompany.objects.filter(soft_delete=False)
+    #         else:
+    #         # Regular users can only access companies related to their client_id
+    #             if not user.client_id:
+    #                 return Response(
+    #                 {"error": "You are not associated with any client."},
+    #                 status=status.HTTP_403_FORBIDDEN,
+    #             )
 
-    #         # Filter companies based on the client_id
-    #         companies = ClientTemplateCompany.objects.filter(
-    #             client_id=user_client.client_id, soft_delete=False
+    #             companies = ClientTemplateCompany.objects.filter(
+    #             client_id=user.client_id, soft_delete=False
     #         )
 
-    #         # Serialize the data
     #         serializer = ClientTemplateCompanySerializer(companies, many=True)
     #         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    #     except PermissionDenied as e:
-    #         return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
     #     except Exception as e:
     #         return Response(
-    #             {"error": f"An unexpected error occurred: {str(e)}"},
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
+    #         {"error": f"An unexpected error occurred: {str(e)}"},
+    #         status=status.HTTP_400_BAD_REQUEST,
+    #     )
 
     def post(self, request):
         try:
@@ -989,41 +1046,77 @@ class SourceListAPIView(APIView):
         IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser | IsSuperAdmin,
     ]
 
-    # [18/feb/25]
+    # [11/03/2025]
     def get(self, request):
         user = request.user
 
-        # Super Admin can access all sources
-        if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-            sources = Source.objects.filter(soft_delete=False)
+    # Determine the active client for filtering.
+        if user.is_admin and user.current_client:
+            active_client_id = user.current_client.client_id
         else:
-            sources = Source.objects.filter(soft_delete=False, client_id=user.client_id)
+            active_client_id = user.client_id
+
+    # For admin/super admin, you may choose to restrict to the active client if desired.
+        if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+            sources = Source.objects.filter(client_id=active_client_id, soft_delete=False)
+        else:
+            sources = Source.objects.filter(soft_delete=False, client_id=active_client_id)
 
         serializer = SourceSerializer(sources, many=True)
         return Response(serializer.data)
+    
 
+
+    # [18/feb/25]
     # def get(self, request):
+    #     user = request.user
+
+    #     # Super Admin can access all sources
+    #     if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #         sources = Source.objects.filter(soft_delete=False)
+    #     else:
+    #         sources = Source.objects.filter(soft_delete=False, client_id=user.client_id)
+
+    #     serializer = SourceSerializer(sources, many=True)
+    #     return Response(serializer.data)
+
+     
+
+    #  [ PDF POST ]
+    # def post(self, request, *args, **kwargs):
     #     try:
-    #         # Fetch the client_id from the logged-in user
-    #         client_id = request.user.client_id
-            
+    #         file = request.FILES.get('file')
+    #         client_id = request.data.get('client_id')
+
+    #         if not file:
+    #             return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
+
     #         if not client_id:
-    #             raise PermissionDenied("You are not associated with any client.")
+    #             return Response({"error": "client_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    #         # Filter sources based on client_id
-    #         sources = Source.objects.filter(soft_delete=False, client_id=client_id)
+    #         # Save file temporarily
+    #         file_path = default_storage.save(f"temp/{file.name}", file)
 
-    #         # Serialize the filtered sources
-    #         serializer = SourceSerializer(sources, many=True)
-    #         return Response(serializer.data, status=status.HTTP_200_OK)
+    #         # Process PDF
+    #         with pdfplumber.open(default_storage.path(file_path)) as pdf:
+    #             data_list = []
+    #             for page in pdf.pages:
+    #                 table = page.extract_table()
+    #                 if table:
+    #                     for row in table[1:]:  # Skip header
+    #                         locode, country_code, country_name, port_code, port_name = row
 
-    #     except PermissionDenied as e:
-    #         return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
+    #                         if port_name and country_name:
+    #                             combined_name = f"{port_name}, {country_name}"
+    #                             data_list.append(Source(name=combined_name, client_id=client_id))
+
+    #             # Bulk insert data
+    #             Source.objects.bulk_create(data_list, ignore_conflicts=True)
+
+    #         return Response({"success": f"{len(data_list)} records inserted"}, status=status.HTTP_201_CREATED)
+
     #     except Exception as e:
-    #         return Response(
-    #             {"error": f"An unexpected error occurred: {str(e)}"},
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
+    #         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
 
 
 class DestinationListAPIView(APIView):
@@ -1032,83 +1125,79 @@ class DestinationListAPIView(APIView):
         IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser | IsSuperAdmin,
     ]
 
-    # [18/feb/25]
+    # [11/03/2025]
     def get(self, request):
         user = request.user
 
-        # Super Admin can access all sources
-        if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-            destination = Destination.objects.filter(soft_delete=False)
+        # Determine the active client for filtering.
+        if user.is_admin and user.current_client:
+            active_client_id = user.current_client.client_id
         else:
-            destination = Destination.objects.filter(soft_delete=False, client_id=user.client_id)
+            active_client_id = user.client_id
+
+        if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+            destination = Destination.objects.filter(client_id=active_client_id, soft_delete=False)
+        else:
+            destination = Destination.objects.filter(soft_delete=False, client_id=active_client_id)
 
         serializer = DestinationSerializer(destination, many=True)
         return Response(serializer.data)
 
+
+    # [18/feb/25]
     # def get(self, request):
-    #     try:
-    #         # Fetch the client_id from the logged-in user
-    #         client_id = request.user.client_id
-            
-    #         # Check if the user is associated with a client
-    #         if not client_id:
-    #             raise PermissionDenied("You are not associated with any client.")
+    #     user = request.user
 
-    #         # Filter destinations by client_id
-    #         destinations = Destination.objects.filter(soft_delete=False, client_id=client_id)
+    #     # Super Admin can access all sources
+    #     if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #         destination = Destination.objects.filter(soft_delete=False)
+    #     else:
+    #         destination = Destination.objects.filter(soft_delete=False, client_id=user.client_id)
 
-    #         # Serialize the filtered destinations
-    #         serializer = DestinationSerializer(destinations, many=True)
-    #         return Response(serializer.data, status=status.HTTP_200_OK)
+    #     serializer = DestinationSerializer(destination, many=True)
+    #     return Response(serializer.data)
 
-    #     except PermissionDenied as e:
-    #         return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
-    #     except Exception as e:
-    #         return Response(
-    #             {"error": f"An unexpected error occurred: {str(e)}"},
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
+   
 
 class FreightTypeListAPIView(APIView):
     permission_classes = [
         IsAuthenticated,
         IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser | IsSuperAdmin,
     ]
-    
-    # [18/feb/25]
+
+    # [11/03/2025]
     def get(self, request):
         user = request.user
 
-        # Super Admin can access all sources
-        if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-            freightType =FreightType.objects.filter(soft_delete=False)
+        # Determine the active client for filtering.
+        if user.is_admin and user.current_client:
+            active_client_id = user.current_client.client_id
         else:
-            freightType = FreightType.objects.filter(soft_delete=False, client_id=user.client_id)
+            active_client_id = user.client_id
+
+        if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+            freightType = FreightType.objects.filter(client_id=active_client_id, soft_delete=False)
+        else:
+            freightType = FreightType.objects.filter(soft_delete=False, client_id=active_client_id)
 
         serializer = FreightTypeSerializer(freightType, many=True)
         return Response(serializer.data)
-
+    
+    
+    # [18/feb/25]
     # def get(self, request):
-    #     try:
-    #         # Fetch the client_id from the logged-in user
-    #         client_id = request.user.client_id
-            
-    #         # Ensure the user is associated with a client
-    #         if not client_id:
-    #             raise PermissionDenied("You are not associated with any client.")
-            
-    #         # Filter FreightTypes by client_id
-    #         freight_types = FreightType.objects.filter(client_id=client_id)
-    #         serializer = FreightTypeSerializer(freight_types, many=True)
-    #         return Response(serializer.data, status=status.HTTP_200_OK)
+    #     user = request.user
 
-    #     except PermissionDenied as e:
-    #         return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
-    #     except Exception as e:
-    #         return Response(
-    #             {"error": f"An unexpected error occurred: {str(e)}"},
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
+    #     # Super Admin can access all sources
+    #     if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #         freightType =FreightType.objects.filter(soft_delete=False)
+    #     else:
+    #         freightType = FreightType.objects.filter(soft_delete=False, client_id=user.client_id)
+
+    #     serializer = FreightTypeSerializer(freightType, many=True)
+    #     return Response(serializer.data)
+
+  
 
     def post(self, request):
         try:
@@ -1154,7 +1243,8 @@ class FreightTypeListAPIView(APIView):
 class RateListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser | IsSuperAdmin,]
     serializer_class = RateSerializer1 # [ NOTEE : ALL FIELDS ARE MENTIONS ALSO]
-
+  
+    # [11/MAR/2025]
     def get_queryset(self):
         source_id = self.kwargs.get('source')
         destination_id = self.kwargs.get('destination')
@@ -1170,7 +1260,13 @@ class RateListView(generics.ListAPIView):
 
         # [18/feb/25]
         if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-            client_id = None  # Pass NULL in the stored procedure to fetch all data
+            if user.current_client:
+                client_id = user.current_client.client_id
+            else:
+                # No active client switch; pass None to fetch all data for admin.
+                client_id = None
+              # Pass NULL in the stored procedure to fetch all data
+
         else: 
             client_id = user.client_id
 
@@ -1201,6 +1297,54 @@ class RateListView(generics.ListAPIView):
 
             data = [dict(zip(columns, row)) for row in rows] #working
             return data
+
+
+    # def get_queryset(self):
+    #     source_id = self.kwargs.get('source')
+    #     destination_id = self.kwargs.get('destination')
+    #     freight_type_id = self.kwargs.get('freight_type', None)
+    #     # [18/feb/25]
+    #     user = self.request.user
+
+    #     # Get the client_id of the authenticated user
+    #     # client_id = self.request.user.client.client_id if self.request.user.client else None
+
+    #     # if not client_id:
+    #     #     raise PermissionDenied({"error": "You are not associated with any client."})
+
+    #     # [18/feb/25]
+    #     if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #         client_id = None  # Pass NULL in the stored procedure to fetch all data
+    #     else: 
+    #         client_id = user.client_id
+
+    #     # Check if the user has a valid client_id
+    #         if not client_id:
+    #            return []
+
+    #     with connection.cursor() as cursor:
+    #         # Execute the stored procedure with the client_id, source_id, and destination_id
+    #         cursor.execute("SELECT * FROM get_combined_rates_data(%s, %s, %s, %s)", [source_id, destination_id, freight_type_id, client_id])
+    #         rows = cursor.fetchall()
+
+
+    #         columns = [
+    #             'id', 'unique_uuid', 'company_id', 'company_name', 'rate', 'currency',
+    #             'free_days', 'spot_filed', 'transhipment_add_port', 'effective_date',
+    #             'expiration_date', 'un_number', 'vessel_name', 'cargotype', 'hazardous', 'terms_condition',
+    #             'source_id', 'source_name', 'destination_id', 'destination_name', 'transit_time_id', 'transit_time',
+    #             'freight_type_id', 'freight_type','remarks','shipping_schedule_id','departure_date','arrival_date','port_cut_off_date','si_cut_off_date', 'gate_opening_date','service','voyage','charge','charge_flag','charge_name','pp_cc','note'
+    #         ]
+
+    #         # print("Columns from DB:", [desc[0] for desc in cursor.description])
+    #         # print("Columns in Django:", columns)
+
+    #         # columns = config.get("RATE_LIST_QUERYSET" , "").split(",")
+
+    #         # Convert the result into a list of dictionaries
+
+    #         data = [dict(zip(columns, row)) for row in rows] #working
+    #         return data
 
 
 # [ MANUALRATE FILTER WITH COMPANY ID ]
@@ -1253,113 +1397,132 @@ class ManualRateWithRateWithVersionsAPIView(APIView):
         IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsSuperAdmin,
     ]
 
-    # [ 28/FEB/2025 ]
-
+    # [ 11/MAR/2025 ]
     def get(self, request, source_id, destination_id):
         try:
             user = request.user
+            logger.debug(f"User: {user}, Role: {getattr(user, 'role', None)}, Current Client: {getattr(user, 'current_client', None)}")
 
-            # Super Admin can access all manual rates
-            if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-                manual_rates = ManualRate.objects.filter(source_id=source_id, destination_id=destination_id, soft_delete=False)
+            # Determine the active client for filtering.
+            if user.is_admin and user.current_client:
+                active_client_id = user.current_client.client_id
             else:
-                client_id = user.client_id
-                if not client_id:
-                    return Response(
-                        {"error": "You are not associated with any client."},
-                        status=status.HTTP_403_FORBIDDEN
-                    )
+                active_client_id = user.client_id
 
+            if not active_client_id:
+                return Response(
+                    {"error": "No valid client_id associated with the user."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # For Admin/Super Admin: Fetch data based on the active client
+            if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
                 manual_rates = ManualRate.objects.filter(
-                    source_id=source_id, destination_id=destination_id, client_id=client_id, charge='FRTF', soft_delete=False
-                ).prefetch_related('shipping_schedules')
+                    source_id=source_id,
+                    destination_id=destination_id,
+                    client_id=active_client_id,
+                    soft_delete=False
+                )
+            else:
+                # For Regular Users: Fetch data only for their assigned client
+                manual_rates = ManualRate.objects.filter(
+                    source_id=source_id,
+                    destination_id=destination_id,
+                    client_id=active_client_id,
+                    charge='FRTF',
+                    soft_delete=False
+                )
 
-                if not manual_rates.exists():
-                    return Response(
-                        {"error": "FRTF charge code not found for this shipping line."},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
+            # If no matching manual rates, return an appropriate response
+            if not manual_rates.exists():
+                return Response(
+                    {"error": "FRTF charge code not found for this shipping line."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
+            # Serialize results
             serializer = ManualRateSerializer(manual_rates, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        except PermissionDenied as e:
-            return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
-        
+        except ManualRate.DoesNotExist:
+            return Response(
+                {"error": "ManualRate version not found for the given source and destination."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             return Response(
                 {"error": f"An unexpected error occurred: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
-
-    #[ 18/feb/25 ]
-    # def get(self, request, company_id):
-    #     try:
-    #         user = request.user
-
-    #         # Super Admin can access all manual rates
-    #         if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-    #             manual_rates = ManualRate.objects.filter(company_id=company_id, soft_delete=False)
-    #         else:
-    #             client_id = user.client_id
-    #             if not client_id:
-    #                 return Response(
-    #                     {"error": "You are not associated with any client."},
-    #                     status=status.HTTP_403_FORBIDDEN
-    #                 )
-
-    #             manual_rates = ManualRate.objects.filter(
-    #                 company_id=company_id, client_id=client_id, charge='FRTF', soft_delete=False
-    #             ).prefetch_related('shipping_schedules')
-
-    #             if not manual_rates.exists():
-    #                 return Response(
-    #                     {"error": "FRTF charge code not found for this shipping line."},
-    #                     status=status.HTTP_404_NOT_FOUND
-    #                 )
-
-    #         serializer = ManualRateSerializer(manual_rates, many=True)
-    #         return Response(serializer.data, status=status.HTTP_200_OK)
-
-    #     except PermissionDenied as e:
-    #         return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
-        
-    #     except Exception as e:
-    #         return Response(
-    #             {"error": f"An unexpected error occurred: {str(e)}"},
-    #             status=status.HTTP_400_BAD_REQUEST
-    #         )
-
 
    
 class ManualRateListView(APIView):
-    permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsSuperAdmin,]
+    permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsSuperAdmin]
 
-    # [18/feb/25]
+    # [11/03/2025]
     def get(self, request):
         try:
             user = request.user
 
-        # Super Admin can access all manual rates
+            # Determine active client context for filtering:
             if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-                manual_rate = ManualRate.objects.filter(soft_delete=False)
+                if user.current_client:
+                    # Admin has switched, so filter by the active client's ID.
+                    manual_rate = ManualRate.objects.filter(
+                        client_id=user.current_client.client_id,
+                        soft_delete=False
+                    )
+                else:
+                    # No active switch; admin accesses all manual rates.
+                    manual_rate = ManualRate.objects.filter(soft_delete=False)
             else:
-                client_id = user.client_id
+                # For regular users, ensure a client is associated.
+                client_id = user.current_client.client_id
                 if not client_id:
                     return Response(
-                    {"error": "You are not associated with any client."},
-                    status=status.HTTP_403_FORBIDDEN,
+                        {"error": "You are not associated with any client."},
+                        status=status.HTTP_403_FORBIDDEN,
                     )
-                manual_rate = ManualRate.objects.filter(client_id=client_id, soft_delete=False)
+                manual_rate = ManualRate.objects.filter(
+                    client_id=client_id,
+                    soft_delete=False
+                )
 
             manual_rate_serializer = ManualRateSerializer(manual_rate, many=True)
             return Response(manual_rate_serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
-            {"error": f"An unexpected error occurred: {str(e)}"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+    
+    # [18/feb/25]
+    # def get(self, request):
+    #     try:
+    #         user = request.user
+
+    #     # Super Admin can access all manual rates
+    #         if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #             manual_rate = ManualRate.objects.filter(soft_delete=False)
+    #         else:
+    #             client_id = user.client_id
+    #             if not client_id:
+    #                 return Response(
+    #                 {"error": "You are not associated with any client."},
+    #                 status=status.HTTP_403_FORBIDDEN,
+    #                 )
+    #             manual_rate = ManualRate.objects.filter(client_id=client_id, soft_delete=False)
+
+    #         manual_rate_serializer = ManualRateSerializer(manual_rate, many=True)
+    #         return Response(manual_rate_serializer.data, status=status.HTTP_200_OK)
+
+    #     except Exception as e:
+    #         return Response(
+    #         {"error": f"An unexpected error occurred: {str(e)}"},
+    #         status=status.HTTP_400_BAD_REQUEST,
+    #     )
     
 
     # def get(self, request):
@@ -1769,7 +1932,7 @@ class CustomerInfoListView(APIView):
     permission_classes = [IsAuthenticated, IsSystemOrClientAdmin | IsClientUserEditAndRead | IsSuperAdmin,]
 
     # FOR GET
-   # [ 18/feb/25] 
+    # [ 18/feb/25] 
     def get(self, request):
         try:
             user = request.user
@@ -1885,16 +2048,28 @@ class CustomerInfoListView(APIView):
 
 class CustomerInfoDetailsListView(APIView):
     permission_classes = [IsAuthenticated, IsSystemOrClientAdmin | IsClientUserEditAndRead | IsSuperAdmin,]
-
+    
     # FOR GET BY ID
-    #[18/feb/25]
+    #[11/mar/25]
     def get(self, request, id):
         try:
             user = request.user
 
-            # Super Admin can access all customer info
             if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
-                customer_info = CustomerInfo.objects.get(id=id)
+                if user.current_client:
+                    # If admin has switched, restrict to the active client.
+                    try:
+                        customer_info = CustomerInfo.objects.get(
+                            id=id, client_id=user.current_client.client_id
+                        )
+                    except CustomerInfo.DoesNotExist:
+                        return Response(
+                            {"error": f"CustomerInfo with id {id} does not exist or unauthorized access."},
+                            status=status.HTTP_404_NOT_FOUND,
+                        )
+                else:
+                    # Admin without an active switch can access all records.
+                    customer_info = CustomerInfo.objects.get(id=id)
             else:
                 client_id = user.client_id
                 if not client_id:
@@ -1902,84 +2077,105 @@ class CustomerInfoDetailsListView(APIView):
                         {"error": "You are not associated with any client."},
                         status=status.HTTP_403_FORBIDDEN,
                     )
-
-                # Fetch customer info for the given id and client_id
                 try:
-                    customer_info = CustomerInfo.objects.get(id=id, client_id=client_id)
+                    customer_info = CustomerInfo.objects.get(
+                        id=id, client_id=client_id
+                    )
                 except CustomerInfo.DoesNotExist:
                     return Response(
                         {"error": f"CustomerInfo with id {id} does not exist or unauthorized access."},
                         status=status.HTTP_404_NOT_FOUND,
                     )
 
-            # Move this outside the if-else block
-            customer_info_serializer = CustomerInfoSerializer(customer_info)
-            return Response(customer_info_serializer.data, status=status.HTTP_200_OK)
+            serializer = CustomerInfoSerializer(customer_info)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
-        except CustomerInfo.DoesNotExist:
-            return Response(
-                {"error": f"CustomerInfo with id {id} not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
         except Exception as e:
             return Response(
                 {"error": f"An unexpected error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-
+    #[18/feb/25]
     # def get(self, request, id):
     #     try:
-    #         client_id = request.user.client_id  # Assuming the user is associated with a client_id
+    #         user = request.user
 
-    #         # Retrieve the object based on the provided id and client_id
-    #         try:
-    #             customer_info = CustomerInfo.objects.get(id=id, client_id=client_id)
-    #         except CustomerInfo.DoesNotExist:
-    #             return Response({"error": f"CustomerInfo with id {id} does not exist or unauthorized access."},
-    #                             status=status.HTTP_404_NOT_FOUND)
+    #         # Super Admin can access all customer info
+    #         if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #             customer_info = CustomerInfo.objects.get(id=id)
+    #         else:
+    #             client_id = user.client_id
+    #             if not client_id:
+    #                 return Response(
+    #                     {"error": "You are not associated with any client."},
+    #                     status=status.HTTP_403_FORBIDDEN,
+    #                 )
 
-    #         # Serialize the object
+    #             # Fetch customer info for the given id and client_id
+    #             try:
+    #                 customer_info = CustomerInfo.objects.get(id=id, client_id=client_id)
+    #             except CustomerInfo.DoesNotExist:
+    #                 return Response(
+    #                     {"error": f"CustomerInfo with id {id} does not exist or unauthorized access."},
+    #                     status=status.HTTP_404_NOT_FOUND,
+    #                 )
+
+    #         # Move this outside the if-else block
     #         customer_info_serializer = CustomerInfoSerializer(customer_info)
     #         return Response(customer_info_serializer.data, status=status.HTTP_200_OK)
 
-    #     except PermissionDenied:
-    #         return Response({"error": "You do not have permission to access this resource."}, status=status.HTTP_403_FORBIDDEN)
+    #     except CustomerInfo.DoesNotExist:
+    #         return Response(
+    #             {"error": f"CustomerInfo with id {id} not found."},
+    #             status=status.HTTP_404_NOT_FOUND,
+    #         )
     #     except Exception as e:
-    #         return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    #         return Response(
+    #             {"error": f"An unexpected error occurred: {str(e)}"},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         )
+
+
 
 class CommodityList(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser | IsSuperAdmin,]
     serializer_class = CommoditySerializer
 
-    #[18/feb/25] 
+    #[11/mar/25]
     def get_queryset(self):
-    
         user = self.request.user
 
-    # Super Admin can access all commodities
         if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+            # If admin has switched, use the active client filter.
+            if user.current_client:
+                return Comodity.objects.filter(client_id=user.current_client.client_id)
+            # Otherwise, return all commodities.
             return Comodity.objects.all()
 
+        # For regular users, ensure client_id exists and filter accordingly.
         if hasattr(user, 'client_id') and user.client_id:
             return Comodity.objects.filter(client_id=user.client_id)
 
         return Comodity.objects.none()
-    
+
+
+  
+    #[18/feb/25] 
     # def get_queryset(self):
-    #     """
-    #     Filter the queryset to return data only relevant to the user's client or role.
-    #     """
+    
     #     user = self.request.user
-    #     try:
-    #         if hasattr(user, 'client_id'):  # If the user is associated with a client
-    #             return Comodity.objects.filter(client_id=user.client_id)
-    #         else:
-    #             # Admins or system users can access all commodities
-    #             return Comodity.objects.all()
-    #     except Exception as e:
-    #         return Response({"error": f"An unexpected error occurred while fetching commodities: {str(e)}"}, 
-    #                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # # Super Admin can access all commodities
+    #     if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #         return Comodity.objects.all()
+
+    #     if hasattr(user, 'client_id') and user.client_id:
+    #         return Comodity.objects.filter(client_id=user.client_id)
+
+    #     return Comodity.objects.none()
+    
+  
 
     def perform_create(self, serializer):
         """
@@ -2013,33 +2209,34 @@ class IncoTermList(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsClientUserEditAndRead | IsSystemOrClientAdmin | IsClientUserReadOnly | IsUser | IsSuperAdmin,]
     serializer_class = IncoTermSerializer
 
-    # [18/feb/25]
+    # [11/mar/25]
     def get_queryset(self):
         user = self.request.user
 
-    # Super Admin can access all IncoTerms
         if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+            if user.current_client:
+                return IncoTerm.objects.filter(client_id=user.current_client.client_id)
             return IncoTerm.objects.all()
 
         if hasattr(user, 'client_id') and user.client_id:
             return IncoTerm.objects.filter(client_id=user.client_id)
 
-        return IncoTerm.objects.none() 
+        return IncoTerm.objects.none()
 
+    # [18/feb/25]
     # def get_queryset(self):
-    #     """
-    #     Filter the queryset to return data only relevant to the user's client or role.
-    #     """
     #     user = self.request.user
-    #     try:
-    #         if hasattr(user, 'client_id'):  # If the user is associated with a client
-    #             return IncoTerm.objects.filter(client_id=user.client_id)
-    #         else:
-    #             # Admins or system users can access all inco terms
-    #             return IncoTerm.objects.all()
-    #     except Exception as e:
-    #         return Response({"error": f"An unexpected error occurred while fetching inco terms: {str(e)}"}, 
-    #                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # # Super Admin can access all IncoTerms
+    #     if user.is_admin or (user.role and user.role.role_name == "Super Admin"):
+    #         return IncoTerm.objects.all()
+
+    #     if hasattr(user, 'client_id') and user.client_id:
+    #         return IncoTerm.objects.filter(client_id=user.client_id)
+
+    #     return IncoTerm.objects.none() 
+
+
 
     def perform_create(self, serializer):
         """
@@ -2187,3 +2384,18 @@ class ClientinfoViewSet(APIView):
         except Exception as err:
             return Response({"error": "Something went wrong", "details": str(err)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+
+#[ RECENT QUOTATION GENERATED ]
+class RecentQuotationsView(generics.ListAPIView):
+    serializer_class = QuotationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user_client = self.request.user.client_id  # Assuming Client_id is linked to User
+        rates = Rate.objects.filter(client=user_client, soft_delete=False).order_by('-effective_date')[:10]
+        versioned_rates = VersionedRate.objects.filter(client=user_client, soft_delete=False).order_by('-effective_date')[:10]
+        manual_rates = ManualRate.objects.filter(client=user_client, soft_delete=False).order_by('-effective_date')[:10]
+        
+        # Combine all quotations
+        quotations = list(rates) + list(versioned_rates) + list(manual_rates)
+        return sorted(quotations, key=lambda x: x.effective_date, reverse=True)[:10]

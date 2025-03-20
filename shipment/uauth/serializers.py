@@ -167,6 +167,7 @@ class UserVerificationSerializer(serializers.ModelSerializer):
         fields = ['id', 'is_verified']
         read_only_fields = ['id']
 
+# [ GOOGLE ]
 class GoogleLoginSerializer(serializers.Serializer): 
     google_id_token = serializers.CharField()
 
@@ -204,3 +205,61 @@ class GoogleLoginSerializer(serializers.Serializer):
 
         attrs['user'] = user  # Update to 'user' instead of 'User'
         return attrs
+
+
+# class GoogleLoginSerializer(serializers.Serializer): 
+#     google_id_token = serializers.CharField()
+
+#     def validate(self, attrs):
+#         google_id_token = attrs.get('google_id_token')
+
+#         # Send a request to Google to verify the token
+#         response = requests.post(
+#             'https://oauth2.googleapis.com/tokeninfo?id_token=' + google_id_token
+#         )
+
+#         if response.status_code != 200:
+#             raise serializers.ValidationError("Invalid Google ID Token.")
+
+#         user_info = response.json()
+
+#         # Extract necessary information from Google response (such as email, name)
+#         google_email = user_info.get('email')
+#         google_name = user_info.get('name')
+
+#         # Check if the user already exists
+#         user = User.objects.filter(email=google_email).first()
+
+#         if not user:
+#             # If user doesn't exist, create a new user without a password
+#             user = User.objects.create_user_from_google(
+#                 email=google_email,
+#                 name=google_name
+#             )
+
+#             # Optionally, you can assign a default role here
+#             default_role = RoleType.objects.filter(role_name="User").first()  # assuming "user" is a default role
+#             user.role = default_role
+#             user.save()
+
+#         attrs['user'] = user  # Update to 'user' instead of 'User'
+#         return attrs
+
+
+# [ 11/03/2025]
+class ClientSwitchSerializer(serializers.Serializer):
+    client_id = serializers.IntegerField()
+
+    def validate_client_id(self, value):
+        try:
+            Clientinfo.objects.get(client_id=value)
+        except Clientinfo.DoesNotExist:
+            raise serializers.ValidationError("Client with given ID does not exist.")
+        return value
+
+    def update(self, instance, validated_data):
+        client_id = validated_data.get('client_id')
+        client = Clientinfo.objects.get(client_id=client_id)
+        instance.current_client = client
+        instance.save()
+        return instance 
